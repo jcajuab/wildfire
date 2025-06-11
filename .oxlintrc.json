@@ -1,8 +1,8 @@
 {
   "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "ignorePatterns": ["node_modules"],
   "rules": {
     "curly": "deny",
     "sort-imports": "warn"
-  },
-  "ignorePatterns": ["node_modules"]
+  }
 }
