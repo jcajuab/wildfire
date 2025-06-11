@@ -1,0 +1,13 @@
+{
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "target": "esnext",
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noUncheckedSideEffectImports": true,
+    "skipLibCheck": true
+  }
+}

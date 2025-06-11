@@ -1,0 +1,8 @@
+pre-commit:
+  jobs:
+    - run: pnpm oxlint "{staged_files}"
+      glob: "*.{js,ts}"
+    - run: pnpm oxlint -c ./apps/web/.oxlintrc.json "{staged_files}"
+      glob: "*.{jsx,tsx}"
+    - run: pnpm prettier --write "{staged_files}" --ignore-unknown
+      stage_fixed: true

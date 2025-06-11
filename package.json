@@ -1,0 +1,17 @@
+{
+  "name": "wildfire",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run -r --parallel format",
+    "format": "pnpm run -r --parallel format",
+    "lint": "pnpm run -r --parallel lint"
+  },
+  "devDependencies": {
+    "lefthook": "^1.11.13",
+    "oxlint": "^1.0.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.12",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@10.12.1"
+}

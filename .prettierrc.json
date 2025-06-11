@@ -1,0 +1,12 @@
+{
+  "semi": false,
+  "overrides": [
+    {
+      "files": "*.svg",
+      "options": {
+        "parser": "html"
+      }
+    }
+  ],
+  "plugins": ["prettier-plugin-tailwindcss"]
+}
