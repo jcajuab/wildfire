@@ -1,14 +1,12 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src"],
+  "include": ["vite.config.ts"],
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "lib": ["ESNext"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "types": ["node"],
-    "outDir": "./dist"
+    "noEmit": true
   }
 }

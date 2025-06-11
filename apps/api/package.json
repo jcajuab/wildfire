@@ -1,7 +1,7 @@
 {
   "name": "@wildfire/api",
   "version": "0.1.0",
-  "private": "true",
+  "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc",
@@ -15,7 +15,6 @@
     "hono": "^4.7.11"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
     "tsx": "^4.7.1"
   }
 }

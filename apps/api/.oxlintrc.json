@@ -1,4 +1,4 @@
 {
   "extends": ["../../.oxlintrc.json"],
-  "plugins": ["node"]
+  "plugins": ["jsx-a11y", "node"]
 }

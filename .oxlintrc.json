@@ -2,7 +2,7 @@
   "plugins": ["typescript", "unicorn", "oxc", "import"],
   "rules": {
     "curly": "deny",
-    "sort-imports": "deny"
+    "sort-imports": "warn"
   },
   "ignorePatterns": ["node_modules"]
 }

@@ -2,11 +2,12 @@
   "name": "wildfire",
   "private": true,
   "scripts": {
-    "dev": "pnpm run -r --parallel format",
+    "dev": "pnpm run -r --parallel dev",
     "format": "pnpm run -r --parallel format",
     "lint": "pnpm run -r --parallel lint"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "lefthook": "^1.11.13",
     "oxlint": "^1.0.0",
     "prettier": "^3.5.3",
