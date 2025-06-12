@@ -12,9 +12,12 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.14.4",
+    "@hono/trpc-server": "^0.3.4",
+    "@trpc/server": "^11.3.1",
+    "@wildfire/zod": "workspace:*",
     "hono": "^4.7.11"
   },
   "devDependencies": {
-    "tsx": "^4.7.1"
+    "tsx": "^4.20.1"
   }
 }

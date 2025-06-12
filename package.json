@@ -2,14 +2,16 @@
   "name": "wildfire",
   "private": true,
   "scripts": {
+    "build": "pnpm run -r --parallel build",
     "dev": "pnpm run -r --parallel dev",
     "format": "pnpm run -r --parallel format",
-    "lint": "pnpm run -r --parallel lint"
+    "lint": "pnpm run -r --parallel lint",
+    "start": "pnpm run --filter @wildfire/api start"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.0.1",
     "lefthook": "^1.11.13",
-    "oxlint": "^1.0.0",
+    "oxlint": "^1.1.0",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.12",
     "typescript": "^5.8.3"

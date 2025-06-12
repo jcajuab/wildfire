@@ -1,0 +1,19 @@
+{
+  "name": "@wildfire/zod",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier . --write",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "zod": "^3.25.62"
+  }
+}
