@@ -1,0 +1,22 @@
+{
+  "name": "@wildfire/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile ../../dist/wildfire",
+    "dev": "bun run --hot src/index.ts"
+  },
+  "dependencies": {
+    "@orpc/contract": "^1.5.2",
+    "@orpc/openapi": "^1.5.2",
+    "@orpc/server": "^1.5.2",
+    "@orpc/zod": "^1.5.2",
+    "@wildfire/shared": "workspace:*",
+    "hono": "^4.8.2",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.17"
+  }
+}

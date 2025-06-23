@@ -1,0 +1,52 @@
+# Dependencies
+.pnpm-store/
+node_modules/
+deno.json
+deno.lock
+pnpm-lock.yaml
+pnpm-workspace.yaml
+yarn.lock
+
+# Build Output
+*.test-results/
+*.tsbuildinfo
+*.vite/
+.cache/
+.tanstack/
+.vite/
+bin/
+build/
+dist/
+out/
+
+# Coverage
+.nyc_output/
+coverage/
+
+# Logs
+*.log
+*.log.*
+lerna-debug.log*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Environment
+.env*
+!.env.example
+!.envrc
+.direnv/
+
+# Editor Configs
+*.code-workspace
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.zed/
+
+# Miscellaneous
+.DS_Store
+Thumbs.db

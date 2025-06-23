@@ -1,0 +1,18 @@
+{
+  "name": "wildfire",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "prebuild": "bun run clean",
+    "build": "bun run --filter '*' build",
+    "clean": "rimraf ./dist",
+    "dev": "bun run --filter '*' dev"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.5",
+    "lefthook": "^1.11.14",
+    "rimraf": "^6.0.1"
+  }
+}
