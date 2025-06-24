@@ -7,13 +7,14 @@
   "scripts": {
     "prebuild": "bun run clean",
     "build": "bun run --filter '*' build",
-    "clean": "rimraf ./dist",
+    "check": "biome check",
+    "check:fix": "biome check --fix",
+    "clean": "rm -rf ./dist",
     "dev": "bun run --filter '*' dev"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
-    "lefthook": "^1.11.14",
-    "rimraf": "^6.0.1"
+    "lefthook": "^1.11.14"
   },
   "packageManager": "bun@1.2.17"
 }

@@ -23,6 +23,17 @@ bun install # Install dependencies
 bun run dev # Starts development servers
 ```
 
+### Installing Packages
+
+Whenever possible, keep your terminal at the root of the monorepo. However, since [Bun currently does not support adding packages through filtering](https://github.com/oven-sh/bun/issues/14719), as a workaround, you should `cd` into the specific package directory and add the package directly there. Avoid modifying the workspace root `package.json` unless absolutely necessary.
+
+For example, to add the `slug` package to `packages/server`:
+
+```sh
+cd packages/server
+bun add slug
+```
+
 ## Project Structure
 
 ```
