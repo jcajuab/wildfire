@@ -3,6 +3,8 @@
 ## Prerequisites
 
 - [Bun](https://bun.sh/docs/installation)
+- [Docker](https://docs.docker.com/engine/install/)
+  - [Docker Compose](https://docs.docker.com/compose/install/)
 - [Visual Studio Code](https://code.visualstudio.com/Download) – Optional, but recommended.
 
 ## Getting Started
@@ -36,14 +38,16 @@ wildfire/
 
 ## Packages Overview
 
-### `packages/client`
+### Client
 
 _WIP_
 
-### `packages/server`
+### Server
 
 _WIP_
 
-### `packages/shared`
+See [README.md](/packages/server/README.md) for further server-specifc instructions.
+
+### Shared
 
 _WIP_

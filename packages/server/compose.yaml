@@ -1,0 +1,23 @@
+services:
+  adminer:
+    image: adminer:5.3.0
+    environment:
+      - ADMINER_DEFAULT_SERVER=mysql
+    ports:
+      - '8080:8080'
+    restart: always
+  mysql:
+    image: mysql:8.4.5
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+    ports:
+      - '3306:3306'
+    restart: always
+
+volumes:
+  mysql_data:
