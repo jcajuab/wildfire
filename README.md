@@ -4,6 +4,6 @@
 
 _WIP_
 
-## For Developers
+## For developers
 
 See [DEVELOPMENT.md](/docs/DEVELOPMENT.md) for instructions on setting up your environment to start developing this project.

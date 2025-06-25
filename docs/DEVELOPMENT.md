@@ -7,23 +7,24 @@
   - [Docker Compose](https://docs.docker.com/compose/install/)
 - [Visual Studio Code](https://code.visualstudio.com/Download) – Optional, but recommended.
 
-## Getting Started
+## Getting started
 
-### Clone the Project
+### Clone the repoistory
 
 ```sh
 git clone https://github.com/jcajuab/wildfire.git
 ```
 
-### Start Developing
+### Start development
 
 ```sh
 cd wildfire/
-bun install # Install dependencies
-bun run dev # Starts development servers
+bun install --filter '*'                             # Install all dependencies
+cp packages/server/.env.example packages/server/.env # Set up server environment variables (edit if needed)
+bun run dev                                          # Start development servers
 ```
 
-### Installing Packages
+### Installing packages
 
 Whenever possible, keep your terminal at the root of the monorepo. However, since [Bun currently does not support adding packages through filtering](https://github.com/oven-sh/bun/issues/14719), as a workaround, you should `cd` into the specific package directory and add the package directly there. Avoid modifying the workspace root `package.json` unless absolutely necessary.
 
@@ -34,7 +35,7 @@ cd packages/server
 bun add slug
 ```
 
-## Project Structure
+## Project structure
 
 ```
 wildfire/
@@ -47,7 +48,7 @@ wildfire/
 └── package.json
 ```
 
-## Packages Overview
+## Packages overview
 
 ### Client
 
