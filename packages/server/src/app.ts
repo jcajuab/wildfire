@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { trimTrailingSlash } from "hono/trailing-slash";
-import { handler } from "@/orpc/handler";
+import { handler } from "@/lib/orpc/handler";
 
 export const app = new Hono()
   .use(trimTrailingSlash())

@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { createConnection } from "mysql2/promise";
-import * as schema from "@/db/schema";
+import * as schema from "@/lib/db/schema";
 
 const client = await createConnection({
   database: Bun.env.MYSQL_DATABASE,

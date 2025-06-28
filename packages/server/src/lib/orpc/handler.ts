@@ -4,7 +4,7 @@ import {
   experimental_ZodSmartCoercionPlugin as ZodSmartCoercionPlugin,
   experimental_ZodToJsonSchemaConverter as ZodToJsonSchemaConverter,
 } from "@orpc/zod/zod4";
-import { router } from "@/orpc/routes";
+import { router } from "@/routes";
 
 // TODO https://orpc.unnoq.com/docs/openapi/client/openapi-link#cors-policy
 export const handler = new OpenAPIHandler(router, {
