@@ -4,11 +4,11 @@ import { createORPCClient } from "@orpc/client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
 import { contract } from "@wildfire/shared/contracts";
 
+// TODO https://orpc.unnoq.com/docs/plugins/client-retry#client-retry-plugin
+const link = new OpenAPILink(contract, {
+  url: `${window.location.origin}/api`,
+});
+
 type Client = JsonifiedClient<ContractRouterClient<typeof contract>>;
 
-// TODO https://orpc.unnoq.com/docs/plugins/client-retry#client-retry-plugin
-export const client = createORPCClient<Client>(
-  new OpenAPILink(contract, {
-    url: `${window.location.origin}/api`,
-  }),
-);
+export const client = createORPCClient<Client>(link);

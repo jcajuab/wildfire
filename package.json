@@ -13,7 +13,7 @@
     "dev": "bun run --filter '*' dev"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.0.5",
+    "@biomejs/biome": "^2.0.6",
     "lefthook": "^1.11.14"
   },
   "packageManager": "bun@1.2.17"

@@ -1,5 +1,7 @@
 import { pingContract } from "./ping.contract";
 
 export const contract = {
-  ping: pingContract,
+  public: {
+    ping: pingContract,
+  },
 };

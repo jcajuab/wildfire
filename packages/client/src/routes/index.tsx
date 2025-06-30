@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 export const Route = createFileRoute("/")({
   component: Index,
   loader: ({ context: { orpc, queryClient } }) => ({
-    deferredPromise: queryClient.ensureQueryData(orpc.ping.queryOptions()),
+    deferredPromise: queryClient.ensureQueryData(
+      orpc.public.ping.queryOptions(),
+    ),
   }),
 });
 
