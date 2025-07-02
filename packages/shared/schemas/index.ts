@@ -1,1 +1,1 @@
-export * from "./ping.schemas";
+export * from './ping.schemas'

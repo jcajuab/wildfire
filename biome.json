@@ -3,7 +3,7 @@
   "files": {
     "includes": [
       "**",
-      "!**/routeTree.gen.ts"
+      "!**/route-tree.gen.ts"
     ]
   },
   "vcs": {
@@ -20,6 +20,12 @@
   },
   "formatter": {
     "indentStyle": "space"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded"
+    }
   },
   "json": {
     "formatter": {
