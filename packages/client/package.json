@@ -8,21 +8,21 @@
     "dev": "bunx --bun vite"
   },
   "dependencies": {
-    "@orpc/client": "^1.6.0",
-    "@orpc/contract": "^1.6.0",
-    "@orpc/openapi-client": "^1.6.0",
-    "@orpc/tanstack-query": "^1.6.0",
+    "@orpc/client": "^1.6.3",
+    "@orpc/contract": "^1.6.3",
+    "@orpc/openapi-client": "^1.6.3",
+    "@orpc/tanstack-query": "^1.6.3",
     "@tanstack/react-query": "^5.81.5",
     "@tanstack/react-query-devtools": "^5.81.5",
-    "@tanstack/react-router": "^1.123.0",
-    "@tanstack/react-router-devtools": "^1.123.0",
+    "@tanstack/react-router": "^1.124.0",
+    "@tanstack/react-router-devtools": "^1.124.0",
     "@wildfire/shared": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.11",
-    "@tanstack/router-plugin": "^1.123.0",
+    "@tanstack/router-plugin": "^1.124.0",
     "@types/bun": "^1.2.17",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
