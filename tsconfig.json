@@ -29,11 +29,13 @@
 
     // Type Checking
     "strict": true,
+    "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "allowUnusedLabels": true,
-    "allowUnreachableCode": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
 
     // Completeness
     "skipLibCheck": true

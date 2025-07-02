@@ -17,7 +17,6 @@ yarn.lock
 bin/
 build/
 dist/
-out/
 
 # Coverage
 .nyc_output/
