@@ -1,9 +1,10 @@
+import { serve } from 'bun'
 import { app } from '@/app'
 
-const port = Number(Bun.env.PORT ?? 3000)
+const port = Number(process.env.PORT ?? 3000)
 
 try {
-  Bun.serve({
+  serve({
     fetch: app.fetch,
     port,
   })
