@@ -1,1 +1,1 @@
-export { users } from '@/db/schema/users'
+export { users } from './users'
