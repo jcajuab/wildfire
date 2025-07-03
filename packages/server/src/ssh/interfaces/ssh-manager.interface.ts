@@ -5,6 +5,5 @@ export interface SSHManager {
   uploadPublicKey(config: SSHConfigWithPassword): Promise<void>
   connect(config: SSHConfig): Promise<void>
   disconnect(): void
-  isConnected(): boolean
-  executeCommand(): Promise<void>
+  executeCommand(command: string): Promise<void>
 }

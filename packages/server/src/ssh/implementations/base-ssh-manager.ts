@@ -13,10 +13,13 @@ export abstract class BaseSSHManager implements SSHManager {
   public abstract uploadPublicKey(config: SSHConfigWithPassword): Promise<void>
   public abstract connect(config: SSHConfig): Promise<void>
   public abstract disconnect(): void
-  public abstract isConnected(): boolean
-  public abstract executeCommand(): Promise<void>
+  public abstract executeCommand(command: string): Promise<void>
 
   public async generateKeyPair(): Promise<void> {
+    if (await this.hasKeyPair()) {
+      return
+    }
+
     try {
       await fs.mkdir(this.getClientDir(), { recursive: true })
 
@@ -56,16 +59,40 @@ export abstract class BaseSSHManager implements SSHManager {
   protected async getPrivateKey(): Promise<string> {
     try {
       return await fs.readFile(this.getPrivateKeyPath(), 'utf8')
-    } catch {
-      throw new BaseSSHManagerError('Private key not found', this.getClientId())
+    } catch (error: unknown) {
+      if (error instanceof BaseSSHManagerError) {
+        throw error
+      } else if (error instanceof Error) {
+        throw new BaseSSHManagerError(error.message, this.getClientId())
+      } else {
+        throw new BaseSSHManagerError('Unknown error', this.getClientId())
+      }
     }
   }
 
   protected async getPublicKey(): Promise<string> {
     try {
       return await fs.readFile(this.getPublicKeyPath(), 'utf8')
+    } catch (error: unknown) {
+      if (error instanceof BaseSSHManagerError) {
+        throw error
+      } else if (error instanceof Error) {
+        throw new BaseSSHManagerError(error.message, this.getClientId())
+      } else {
+        throw new BaseSSHManagerError('Unknown error', this.getClientId())
+      }
+    }
+  }
+
+  private async hasKeyPair(): Promise<boolean> {
+    try {
+      await Promise.all([
+        fs.stat(this.getPrivateKeyPath()),
+        fs.stat(this.getPublicKeyPath()),
+      ])
+      return true
     } catch {
-      throw new BaseSSHManagerError('Public key not found', this.getClientId())
+      return false
     }
   }
 
