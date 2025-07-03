@@ -16,3 +16,11 @@ export class NodeSSHManagerError extends BaseSSHManagerError {
     Object.setPrototypeOf(this, NodeSSHManagerError.prototype)
   }
 }
+
+export class NodeSSHManagerNotConnectedError extends NodeSSHManagerError {
+  constructor(clientId: string) {
+    super('Not connected', clientId)
+    this.name = 'NodeSSHManagerNotConnectedError'
+    Object.setPrototypeOf(this, NodeSSHManagerError.prototype)
+  }
+}
