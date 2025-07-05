@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
-    "lefthook": "^1.11.14"
+    "lefthook": "^1.11.16"
   },
   "packageManager": "bun@1.2.17"
 }
