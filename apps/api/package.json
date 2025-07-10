@@ -1,0 +1,15 @@
+{
+  "name": "@wildfire/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build --compile --minify --sourcemap --bytecode ./src/main.ts --outfile ../../dist/wildfire",
+    "dev": "bun run --hot src/main.ts"
+  },
+  "dependencies": {
+    "hono": "^4.8.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.18"
+  }
+}

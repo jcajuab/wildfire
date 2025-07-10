@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# build output
+dist/
+
+# environment files
+.env*
+!.env.example
+
+# logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# vscode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# miscellaneous
+.DS_Store
+Thumbs.db

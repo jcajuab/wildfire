@@ -1,0 +1,4 @@
+pre-commit:
+  jobs:
+    - run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
+      glob: "*.{ts,tsx,json}"
