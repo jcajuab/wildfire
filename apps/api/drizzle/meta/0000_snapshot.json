@@ -1,0 +1,70 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "8d823762-8dbc-4240-82b0-5174c14bf8b7",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "displays": {
+      "name": "displays",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "displays_id": {
+          "name": "displays_id",
+          "columns": ["id"]
+        }
+      },
+      "uniqueConstraints": {
+        "displays_name_unique": {
+          "name": "displays_name_unique",
+          "columns": ["name"]
+        },
+        "displays_slug_unique": {
+          "name": "displays_slug_unique",
+          "columns": ["slug"]
+        }
+      },
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    // Language and Environment
+    "target": "esnext",
+    "lib": ["ESNext"],
+    "useDefineForClassFields": true,
+    "moduleDetection": "force",
+
+    // Modules
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "types": ["bun"],
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+
+    // JavaScript Support
+    "allowJs": true,
+
+    // Emit
+    "noEmit": true,
+
+    // Interop Constraints
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Type Checking
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+
+    // Completeness
+    "skipLibCheck": true
+  }
+}

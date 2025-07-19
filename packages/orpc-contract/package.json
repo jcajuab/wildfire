@@ -1,0 +1,22 @@
+{
+  "name": "@wildfire/orpc-contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "http-status": "^2.1.0"
+  },
+  "devDependencies": {
+    "@orpc/contract": "catalog:",
+    "@wildfire/zod-schemas": "workspace:*",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@orpc/contract": "catalog:",
+    "@wildfire/zod-schemas": "workspace:*",
+    "zod": "catalog:"
+  }
+}
