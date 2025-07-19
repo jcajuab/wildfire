@@ -20,10 +20,12 @@
     "drizzle-orm": "^0.44.3",
     "mysql2": "^3.14.2",
     "slug": "^11.0.0",
+    "sshpk": "^1.18.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/slug": "^5.0.9",
+    "@types/sshpk": "^1.17.4",
     "drizzle-kit": "^0.31.4"
   }
 }
