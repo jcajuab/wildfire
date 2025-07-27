@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "EditorConfig.EditorConfig",
+    "biomejs.biome",
+    "bradlc.vscode-tailwindcss",
+    "oven.bun-vscode",
+    "esbenp.prettier-vscode" // ! This is a temporary workaround for formatting files that are not supported by Biome
+  ]
+}

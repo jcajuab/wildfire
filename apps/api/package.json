@@ -1,0 +1,17 @@
+{
+  "name": "@wildfire/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outfile ../../dist/server.js --target=bun --sourcemap=inline --minify",
+    "check": "biome check --write",
+    "dev": "bun --hot src/index.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:"
+  }
+}

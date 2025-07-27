@@ -1,0 +1,27 @@
+{
+  "name": "wildfire",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "@types/bun": "^1.2.19",
+      "zod": "^4.0.10"
+    }
+  },
+  "scripts": {
+    "prebuild": "rm -rf dist",
+    "build": "bun run --filter '*' build",
+    "check": "bun run --filter '*' check",
+    "check:root": "biome check --write",
+    "dev": "bun run --filter '*' dev",
+    "start": "NODE_ENV=production bun --cwd=dist server.js"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.6",
+    "lefthook": "^1.12.2"
+  },
+  "packageManager": "bun@1.2.19"
+}
