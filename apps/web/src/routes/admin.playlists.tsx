@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/admin/playlists')({
-  component: Playlists,
+  component: Component,
 })
 
-function Playlists() {
+function Component() {
   return <h1 className='text-4xl font-bold'>Playlists</h1>
 }

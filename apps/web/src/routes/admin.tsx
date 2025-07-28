@@ -1,29 +1,12 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+// * This is the layout route for /admin
 
-import { Sidebar } from '#/components/admin/Sidebar'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 
+// TODO: Add proper authentication. See: https://github.com/TanStack/router/tree/main/examples/react/authenticated-routes
 export const Route = createFileRoute('/admin')({
-  beforeLoad: async ({ location }) => {
-    // TODO: Add proper authentication. See: https://github.com/TanStack/router/tree/main/examples/react/authenticated-routes
-    if (!(Math.random() > 0.01)) {
-      throw redirect({
-        to: '/',
-        search: {
-          redirect: location.href,
-        },
-      })
-    }
-  },
-  component: AdminLayout,
+  component: Component,
 })
 
-function AdminLayout() {
-  return (
-    <div className='flex'>
-      <Sidebar />
-      <main className='w-full p-4'>
-        <Outlet />
-      </main>
-    </div>
-  )
+function Component() {
+  return <Outlet />
 }

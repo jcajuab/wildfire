@@ -1,13 +1,22 @@
 # `@wildfire/web`
 
-> [!IMPORTANT]
-> Make sure the development server is running (`bun run dev`) during development to enable type hints.
+## Getting Started
 
-## Ports Used
+```sh
+bun run dev
+```
 
-These ports are used when working locally:
-
-- `5173`: WILDFIRE's vite server
+### Adding `shadcn/ui` Components
 
 > [!NOTE]
-> No need to access `http://localhost:3000/api` directly, just use `/api` since it's proxied by the Vite server.
+> Make sure you're in the `/apps/web` folder before running these commands.
+
+```sh
+bun run shadcn:add button
+```
+
+### Ports Used
+
+Here are the ports you'll see in use locally:
+
+- `5173`: WILDFIRE's Vite server
