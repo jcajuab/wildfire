@@ -9,6 +9,7 @@
     "dev": "bun --hot src/index.ts"
   },
   "dependencies": {
+    "luxon": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
