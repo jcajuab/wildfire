@@ -2,11 +2,21 @@
 
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 
+import { AdminSidebar } from '#/components/admin-sidebar'
+import { SidebarProvider } from '#/components/ui/sidebar'
+
 // TODO: Add proper authentication. See: https://github.com/TanStack/router/tree/main/examples/react/authenticated-routes
 export const Route = createFileRoute('/admin')({
   component: Component,
 })
 
 function Component() {
-  return <Outlet />
+  return (
+    <SidebarProvider>
+      <AdminSidebar />
+      <main className='p-4'>
+        <Outlet />
+      </main>
+    </SidebarProvider>
+  )
 }
