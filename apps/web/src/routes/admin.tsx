@@ -14,7 +14,7 @@ function Component() {
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <main className='p-4'>
+      <main className='flex min-h-screen w-full flex-col gap-y-4 overflow-hidden p-4'>
         <Outlet />
       </main>
     </SidebarProvider>

@@ -1,4 +1,7 @@
 pre-commit:
   jobs:
+    # ! This is a temporary workaround for automatically sorting Tailwind CSS classes
+    - run: bun run --filter '@wildfire/web' precheck
+      stage_fixed: true
     - run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
-      glob: "*.{css,ts,tsx,json}"
+      stage_fixed: true

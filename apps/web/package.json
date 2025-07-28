@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "precheck": "prettier \"**/*.{css,ts,tsx}\" --write --log-level=silent",
+    "precheck": "prettier \"**/*.{css,ts,tsx}\" --write",
     "check": "biome check --write",
     "dev": "bunx --bun vite",
     "shadcn:add": "bunx --bun shadcn@canary add"
