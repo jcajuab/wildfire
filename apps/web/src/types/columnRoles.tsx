@@ -57,7 +57,7 @@ export const columns: ColumnDef<Role>[] = [
   {
     id: 'actions',
     cell: ({ row }) => {
-      const payment = row.original
+      const selectedRow = row.original
 
       return (
         <DropdownMenu>
@@ -69,7 +69,7 @@ export const columns: ColumnDef<Role>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
             <DropdownMenuItem
-              onClick={() => alert(JSON.stringify(payment.role))}
+              onClick={() => alert(JSON.stringify(selectedRow.totalUsers))}
             >
               <PencilIcon className='h-4 w-4' />
               Edit Role
@@ -77,7 +77,7 @@ export const columns: ColumnDef<Role>[] = [
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className='text-red-500'
-              onClick={() => alert(JSON.stringify(payment.role))}
+              onClick={() => alert(JSON.stringify(selectedRow.role))}
             >
               <Trash2Icon className='h-4 w-4' />
               Remove Role

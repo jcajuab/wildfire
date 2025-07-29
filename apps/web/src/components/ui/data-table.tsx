@@ -4,13 +4,15 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
 import { SearchIcon } from 'lucide-react'
-import React from 'react'
+import React, { useState } from 'react'
 
+import { DataTablePagination } from '#/components/ui/data-table-pagination'
 import { Input } from '#/components/ui/input'
 import {
   Table,
@@ -36,6 +38,12 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   )
+  // Adds pagination functionality
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, //initial page index
+    pageSize: 10, //default page size
+  })
+
   const table = useReactTable({
     data,
     columns,
@@ -44,9 +52,12 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
+      pagination,
     },
   })
 
@@ -118,6 +129,7 @@ export function DataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
+        <DataTablePagination table={table} />
       </div>
     </>
   )
