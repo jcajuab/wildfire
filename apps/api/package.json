@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "luxon": "catalog:",
+    "slug": "^11.0.0",
     "zod": "catalog:"
   },
   "devDependencies": {

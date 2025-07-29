@@ -5,7 +5,8 @@
   // Biome
   "biome.suggestInstallingGlobally": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.biome": "explicit"
+    "source.fixAll.biome": "explicit",
+    "source.fixAll": "always"
   },
   "editor.defaultFormatter": "biomejs.biome",
 
