@@ -52,7 +52,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-end justify-between'>
         <h2 className='scroll-m-20 font-semibold tracking-tight first:mt-0'>
           Search results
         </h2>

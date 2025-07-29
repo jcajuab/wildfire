@@ -1,7 +1,19 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDownIcon } from 'lucide-react'
+import {
+  ArrowUpDownIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu'
 
 // (1) Define the columns for the table
 // This type is used to define the shape of our data.
@@ -39,6 +51,39 @@ export const columns: ColumnDef<Role>[] = [
           Users
           <ArrowUpDownIcon />
         </Button>
+      )
+    },
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const payment = row.original
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className='h-8 w-8 p-0' variant='ghost'>
+              <span className='sr-only'>Open menu</span>
+              <MoreHorizontalIcon className='h-4 w-4' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem
+              onClick={() => alert(JSON.stringify(payment.role))}
+            >
+              <PencilIcon className='h-4 w-4' />
+              Edit Role
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className='text-red-500'
+              onClick={() => alert(JSON.stringify(payment.role))}
+            >
+              <Trash2Icon className='h-4 w-4' />
+              Remove Role
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )
     },
   },
