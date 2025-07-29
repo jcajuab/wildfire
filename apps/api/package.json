@@ -13,6 +13,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "catalog:"
+    "@types/bun": "catalog:",
+    "@types/luxon": "catalog:"
   }
 }
