@@ -41,6 +41,11 @@ const sidebarItems = [
     url: '/admin/schedules',
     icon: 'calendar',
   },
+  {
+    title: 'Roles',
+    url: '/admin/roles',
+    icon: 'shield',
+  },
 ] as const satisfies SidebarItem[]
 
 export function AdminSidebar() {
