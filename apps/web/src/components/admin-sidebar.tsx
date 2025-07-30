@@ -1,4 +1,5 @@
 import { Link, type LinkOptions, useMatches } from '@tanstack/react-router'
+// TODO: Remove Dynamic Icon, it slows down build
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic'
 
 import { ModeToggle } from '#/components/mode-toggle'
