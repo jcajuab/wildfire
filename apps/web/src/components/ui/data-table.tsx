@@ -9,7 +9,7 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, UserIcon } from 'lucide-react'
 import React, { useState } from 'react'
 
 import { DataTablePagination } from '#/components/ui/data-table-pagination'
@@ -109,9 +109,21 @@ export function DataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
+                      {cell.column.id === 'totalUsers' ? (
+                        <span className='flex items-center gap-2'>
+                          <div className='inline-block min-w-[2ch] text-left'>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </div>
+                          <UserIcon className='h-4 w-4' />
+                        </span>
+                      ) : (
+                        flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )
                       )}
                     </TableCell>
                   ))}

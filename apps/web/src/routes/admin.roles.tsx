@@ -13,12 +13,12 @@ const data: Role[] = [
   {
     id: '1',
     role: 'Admin',
-    totalUsers: 5,
+    totalUsers: 329599,
   },
   {
     id: '2',
     role: 'Editor',
-    totalUsers: 10,
+    totalUsers: 1039,
   },
   {
     id: '3',
