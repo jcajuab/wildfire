@@ -6,16 +6,30 @@ import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-sc
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ClockIcon,
+  EyeIcon,
   FileImageIcon,
   FilterIcon,
   GripVerticalIcon,
   InfoIcon,
   ListMusicIcon,
+  MoreVerticalIcon,
+  PencilIcon,
   PlusIcon,
   SearchIcon,
+  Trash2Icon,
 } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -29,6 +43,11 @@ import {
 } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../components/ui/popover'
 import {
   Sheet,
   SheetContent,
@@ -48,6 +67,15 @@ interface PlaylistItem {
   id: number
   name: string
   duration: string
+}
+
+interface CreatedPlaylist {
+  id: number
+  name: string
+  description: string
+  author: string
+  items: PlaylistItem[]
+  createdAt: Date
 }
 
 interface DragData {
@@ -195,7 +223,6 @@ function DraggableContentItem({
       element,
       canDrop: ({ source }) => {
         const sourceData = source.data as DragData
-        // Accept both content-item (for reordering) and playlist-item (for returning from playlist)
         return (
           sourceData.type === 'content-item' ||
           sourceData.type === 'playlist-item'
@@ -203,7 +230,6 @@ function DraggableContentItem({
       },
       onDragEnter: ({ source }) => {
         const sourceData = source.data as DragData
-        // Only show drop target indicator for content-item reordering
         if (sourceData.type === 'content-item') {
           setIsDropTarget(true)
         }
@@ -214,13 +240,11 @@ function DraggableContentItem({
         const sourceData = source.data as DragData
 
         if (sourceData.type === 'content-item') {
-          // Handle reordering within content library
           const sourceIndex = sourceData.index as number
           if (sourceIndex !== index) {
             onReorder(sourceIndex, index)
           }
         }
-        // Note: playlist-item drops are handled by the DropZone wrapper
       },
     })
 
@@ -257,48 +281,65 @@ function Component() {
   const [playlistName, setPlaylistName] = useState('')
   const [playlistDescription, setPlaylistDescription] = useState('')
 
-  const initialPlaylist = [
-    { id: 101, name: 'AkiBlog #30', duration: '0:45' },
-    { id: 102, name: 'AkiBlog #31', duration: '0:30' },
-    { id: 103, name: 'AkiBlog #32', duration: '1:00' },
-  ]
+  // State for editing and deleting
+  const [editingPlaylist, setEditingPlaylist] =
+    useState<CreatedPlaylist | null>(null)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [playlistToDeleteId, setPlaylistToDeleteId] = useState<number | null>(
+    null,
+  )
+
+  const initialPlaylist: PlaylistItem[] = []
   const initialContent = [
     { id: 1, name: 'AkiBlog #29', duration: '2:15' },
     { id: 2, name: 'AkiBlog #28', duration: '1:45' },
     { id: 3, name: 'AkiBlog #27', duration: '3:20' },
     { id: 4, name: 'AkiBlog #26', duration: '0:58' },
     { id: 5, name: 'AkiBlog #25', duration: '2:33' },
+    { id: 101, name: 'AkiBlog #30', duration: '0:45' },
+    { id: 102, name: 'AkiBlog #31', duration: '0:30' },
+    { id: 103, name: 'AkiBlog #32', duration: '1:00' },
   ]
 
   const [playlistItems, setPlaylistItems] =
     useState<PlaylistItem[]>(initialPlaylist)
   const [contentLibrary, setContentLibrary] =
     useState<PlaylistItem[]>(initialContent)
+  const [createdPlaylists, setCreatedPlaylists] = useState<CreatedPlaylist[]>(
+    [],
+  )
 
-  // Function to filter content library based on search query
+  const parseDuration = (duration: string): number => {
+    const parts = duration.split(':')
+    const minutes = parseInt(parts[0] || '0', 10)
+    const seconds = parseInt(parts[1] || '0', 10)
+    return (
+      (Number.isNaN(minutes) ? 0 : minutes) * 60 +
+      (Number.isNaN(seconds) ? 0 : seconds)
+    )
+  }
+
+  const formatDuration = (totalSeconds: number): string => {
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
   const filterContentLibrary = (
     items: PlaylistItem[],
     query: string,
   ): PlaylistItem[] => {
     if (!query.trim()) return items
-
     try {
-      // Check if the query looks like a regex pattern (contains regex special chars)
       const hasRegexChars = /[.*+?^${}()|[\]\\]/.test(query)
-
-      if (hasRegexChars) {
-        // Try to use as regex
-        const regex = new RegExp(query, 'i')
-        return items.filter((item) => regex.test(item.name))
-      } else {
-        // Simple case-insensitive string search
-        const lowerQuery = query.toLowerCase()
-        return items.filter((item) =>
-          item.name.toLowerCase().includes(lowerQuery),
-        )
-      }
+      const regex = hasRegexChars ? new RegExp(query, 'i') : null
+      const lowerQuery = query.toLowerCase()
+      return items.filter((item) =>
+        regex
+          ? regex.test(item.name)
+          : item.name.toLowerCase().includes(lowerQuery),
+      )
     } catch {
-      // If regex is invalid, fall back to simple string search
       const lowerQuery = query.toLowerCase()
       return items.filter((item) =>
         item.name.toLowerCase().includes(lowerQuery),
@@ -306,34 +347,80 @@ function Component() {
     }
   }
 
-  // Get filtered content library
   const filteredContentLibrary = filterContentLibrary(
     contentLibrary,
     contentSearchQuery,
   )
 
-  const handleAddPlaylist = () => setIsCreateModalOpen(true)
-
-  const handleCreatePlaylist = () => {
-    console.log('Creating playlist:', {
-      name: playlistName,
-      description: playlistDescription,
-      items: playlistItems,
-    })
-    // Reset form and close modal
+  const closeAndResetModal = () => {
+    setEditingPlaylist(null)
     setPlaylistName('')
     setPlaylistDescription('')
     setPlaylistItems([])
-    setContentLibrary([...initialContent, ...initialPlaylist]) // Reset content library
+    setContentLibrary(initialContent)
     setIsCreateModalOpen(false)
   }
 
-  const handleCancel = () => {
+  const handleOpenCreateModal = () => {
+    setEditingPlaylist(null)
     setPlaylistName('')
     setPlaylistDescription('')
-    setPlaylistItems(initialPlaylist)
+    setPlaylistItems([])
     setContentLibrary(initialContent)
-    setIsCreateModalOpen(false)
+    setIsCreateModalOpen(true)
+  }
+
+  const handleOpenEditModal = (playlist: CreatedPlaylist) => {
+    setEditingPlaylist(playlist)
+    setPlaylistName(playlist.name)
+    setPlaylistDescription(playlist.description)
+    setPlaylistItems(playlist.items)
+    const playlistItemIds = new Set(playlist.items.map((item) => item.id))
+    setContentLibrary(
+      initialContent.filter((item) => !playlistItemIds.has(item.id)),
+    )
+    setIsCreateModalOpen(true)
+  }
+
+  const handleSavePlaylist = () => {
+    if (!playlistName.trim()) return
+
+    if (editingPlaylist) {
+      const updatedPlaylist = {
+        ...editingPlaylist,
+        name: playlistName,
+        description: playlistDescription || 'No description provided.',
+        items: [...playlistItems],
+      }
+      setCreatedPlaylists((prev) =>
+        prev.map((p) => (p.id === editingPlaylist.id ? updatedPlaylist : p)),
+      )
+    } else {
+      const newPlaylist: CreatedPlaylist = {
+        id: Date.now(),
+        name: playlistName,
+        description: playlistDescription || 'No description provided.',
+        author: 'Admin',
+        items: [...playlistItems],
+        createdAt: new Date(),
+      }
+      setCreatedPlaylists((prev) => [newPlaylist, ...prev])
+    }
+    closeAndResetModal()
+  }
+
+  const handlePromptDelete = (playlistId: number) => {
+    setPlaylistToDeleteId(playlistId)
+    setIsDeleteConfirmOpen(true)
+  }
+
+  const handleDeletePlaylist = () => {
+    if (playlistToDeleteId === null) return
+    setCreatedPlaylists((prev) =>
+      prev.filter((p) => p.id !== playlistToDeleteId),
+    )
+    setPlaylistToDeleteId(null)
+    setIsDeleteConfirmOpen(false)
   }
 
   const handleReorderPlaylistItems = (fromIndex: number, toIndex: number) => {
@@ -345,7 +432,6 @@ function Component() {
     }
   }
 
-  // Function to handle content library reordering
   const handleReorderContentLibrary = (fromIndex: number, toIndex: number) => {
     const newItems = [...contentLibrary]
     const [movedItem] = newItems.splice(fromIndex, 1)
@@ -356,31 +442,124 @@ function Component() {
   }
 
   const handleAddContentToPlaylist = (content: PlaylistItem) => {
-    if (playlistItems.some((item) => item.id === content.id)) return // Avoid duplicates
+    if (playlistItems.some((item) => item.id === content.id)) return
     setPlaylistItems((prev) => [...prev, content])
     setContentLibrary((prev) => prev.filter((item) => item.id !== content.id))
   }
 
   const handleReturnItemToLibrary = (item: PlaylistItem) => {
-    if (contentLibrary.some((c) => c.id === item.id)) return // Avoid duplicates
+    if (contentLibrary.some((c) => c.id === item.id)) return
     setContentLibrary((prev) => [...prev, item])
     setPlaylistItems((prev) => prev.filter((pItem) => pItem.id !== item.id))
   }
 
   const calculateTotalDuration = () => {
     if (playlistItems.length === 0) return '0:00'
-    let totalMinutes = 0
-    let totalSeconds = 0
-    playlistItems.forEach((item) => {
-      const parts = item.duration.split(':')
-      const minutes = parseInt(parts[0] || '0', 10)
-      const seconds = parseInt(parts[1] || '0', 10)
-      if (!Number.isNaN(minutes)) totalMinutes += minutes
-      if (!Number.isNaN(seconds)) totalSeconds += seconds
-    })
-    totalMinutes += Math.floor(totalSeconds / 60)
-    totalSeconds %= 60
-    return `${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`
+    const totalSeconds = playlistItems.reduce(
+      (acc, item) => acc + parseDuration(item.duration),
+      0,
+    )
+    return formatDuration(totalSeconds)
+  }
+
+  const PlaylistCard = ({
+    playlist,
+    onEdit,
+    onDeletePrompt,
+  }: {
+    playlist: CreatedPlaylist
+    onEdit: (playlist: CreatedPlaylist) => void
+    onDeletePrompt: (id: number) => void
+  }) => {
+    const totalSeconds = playlist.items.reduce(
+      (acc, item) => acc + parseDuration(item.duration),
+      0,
+    )
+
+    return (
+      <Card className='w-full max-w-md'>
+        <CardHeader className='pb-3'>
+          <div className='flex items-start justify-between'>
+            <div className='flex-1'>
+              <CardTitle className='text-xl font-bold text-gray-900'>
+                {playlist.name}
+              </CardTitle>
+              <p className='mt-1 text-sm text-gray-600'>by {playlist.author}</p>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button className='h-8 w-8 p-0' variant='ghost'>
+                  <MoreVerticalIcon className='h-5 w-5 text-gray-500' />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className='w-48 p-1'>
+                <Button
+                  className='flex w-full cursor-pointer items-center justify-start p-2 text-sm'
+                  onClick={() => onEdit(playlist)}
+                  variant='ghost'
+                >
+                  <PencilIcon className='mr-2 h-4 w-4' />
+                  Edit Playlist
+                </Button>
+                <Button
+                  className='flex w-full cursor-pointer items-center justify-start p-2 text-sm'
+                  onClick={() => {
+                    /* No function for now */
+                  }}
+                  variant='ghost'
+                >
+                  <EyeIcon className='mr-2 h-4 w-4' />
+                  Preview Playlist
+                </Button>
+                <div className='my-1 h-px bg-gray-200' />
+                <Button
+                  className='flex w-full cursor-pointer items-center justify-start p-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-600'
+                  onClick={() => onDeletePrompt(playlist.id)}
+                  variant='ghost'
+                >
+                  <Trash2Icon className='mr-2 h-4 w-4' />
+                  Delete Playlist
+                </Button>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <p className='mt-3 text-sm text-gray-600'>{playlist.description}</p>
+        </CardHeader>
+        <CardContent className='pt-0'>
+          <div className='mb-4 flex items-center gap-4 text-sm text-gray-600'>
+            <div className='flex items-center gap-1'>
+              <ListMusicIcon className='h-4 w-4' />
+              <span>{playlist.items.length} items</span>
+            </div>
+            <div className='flex items-center gap-1'>
+              <ClockIcon className='h-4 w-4' />
+              <span>
+                {formatDuration(totalSeconds)}{' '}
+                {totalSeconds < 60 ? 'sec' : 'min'}
+              </span>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-2 gap-2'>
+            {playlist.items.slice(0, 4).map((item) => (
+              <div className='relative' key={item.id}>
+                <div className='rounded-md bg-blue-500 px-3 py-2 text-center text-xs font-medium text-white'>
+                  {item.name}
+                </div>
+                <div className='mt-1 text-center text-xs text-gray-500'>
+                  {item.duration}
+                </div>
+              </div>
+            ))}
+            {playlist.items.length > 4 && (
+              <div className='col-span-2 mt-1 text-center text-xs text-gray-500'>
+                +{playlist.items.length - 4} more items
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   const quickFilters = ['All', 'Ready', 'Live', 'Down']
@@ -393,7 +572,7 @@ function Component() {
           <DialogTrigger asChild>
             <Button
               className='cursor-pointer'
-              onClick={handleAddPlaylist}
+              onClick={handleOpenCreateModal}
               variant='default'
             >
               <PlusIcon className='mr-2 h-4 w-4' />
@@ -412,7 +591,9 @@ function Component() {
             <DialogHeader>
               <div className='flex items-center justify-between'>
                 <div>
-                  <DialogTitle>Create New Playlist</DialogTitle>
+                  <DialogTitle>
+                    {editingPlaylist ? 'Edit Playlist' : 'Create New Playlist'}
+                  </DialogTitle>
                   <DialogDescription>
                     Add and organize contents to form a playlist. Drag items
                     between the content library and the playlist. You can also
@@ -420,16 +601,17 @@ function Component() {
                   </DialogDescription>
                 </div>
                 <div className='flex items-center gap-2'>
-                  <Button onClick={handleCancel} variant='outline'>
+                  <Button onClick={closeAndResetModal} variant='outline'>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreatePlaylist}>Create</Button>
+                  <Button onClick={handleSavePlaylist}>
+                    {editingPlaylist ? 'Save Changes' : 'Create'}
+                  </Button>
                 </div>
               </div>
             </DialogHeader>
 
             <div className='grid grid-cols-2 gap-6 py-4'>
-              {/* Left Column - Playlist Information */}
               <div className='space-y-6'>
                 <Card>
                   <CardHeader>
@@ -463,7 +645,11 @@ function Component() {
                     </div>
                     <div className='text-muted-foreground text-sm'>
                       <strong>Total Duration:</strong>{' '}
-                      {calculateTotalDuration()} min
+                      {calculateTotalDuration()}
+                      {(() => {
+                        const total = parseDuration(calculateTotalDuration())
+                        return total < 60 ? 'sec' : 'min'
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
@@ -511,7 +697,6 @@ function Component() {
                 </Card>
               </div>
 
-              {/* Right Column - Content Library with reordering */}
               <div>
                 <Card className='flex h-full flex-col'>
                   <CardHeader>
@@ -556,7 +741,6 @@ function Component() {
                         <div className='space-y-2'>
                           {filteredContentLibrary.length > 0 ? (
                             filteredContentLibrary.map((content) => {
-                              // Get the original index in the full content library for reordering
                               const originalIndex = contentLibrary.findIndex(
                                 (item) => item.id === content.id,
                               )
@@ -594,7 +778,6 @@ function Component() {
         </Dialog>
       </div>
 
-      {/* Filters and Search Section */}
       <div className='flex w-full items-center justify-between'>
         <div className='flex items-center gap-2'>
           {quickFilters.map((filter) => (
@@ -638,6 +821,46 @@ function Component() {
           </div>
         </div>
       </div>
+
+      {createdPlaylists.length > 0 && (
+        <div className='space-y-4'>
+          <h2 className='text-2xl font-semibold'>Created Playlists</h2>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
+            {createdPlaylists.map((playlist) => (
+              <PlaylistCard
+                key={playlist.id}
+                onDeletePrompt={handlePromptDelete}
+                onEdit={handleOpenEditModal}
+                playlist={playlist}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      <AlertDialog
+        onOpenChange={setIsDeleteConfirmOpen}
+        open={isDeleteConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Are you sure you want to delete this playlist?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              playlist.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPlaylistToDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePlaylist}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
