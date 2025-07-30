@@ -64,6 +64,12 @@ interface DraggablePlaylistItemProps {
   onReorder: (fromIndex: number, toIndex: number) => void
 }
 
+interface DraggableContentItemProps {
+  content: PlaylistItem
+  index: number
+  onReorder: (fromIndex: number, toIndex: number) => void
+}
+
 interface DropZoneProps {
   children: ReactNode
   onDropItem: (item: PlaylistItem) => void
@@ -118,7 +124,7 @@ function DraggablePlaylistItem({
     if (!element) return
 
     const cleanupDraggable = draggable({
-      element, // The entire element is the drag handle now
+      element,
       getInitialData: () => ({ type: 'playlist-item', index, item }),
       onDragStart: () => setIsDragging(true),
       onDrop: () => setIsDragging(false),
@@ -159,19 +165,12 @@ function DraggablePlaylistItem({
           {item.duration} min
         </div>
       </div>
-      {/* Grip icon is now just a visual affordance */}
       <GripVerticalIcon className='h-4 w-4 text-gray-400' />
     </div>
   )
 }
 
 // Draggable Content Library Item
-interface DraggableContentItemProps {
-  content: PlaylistItem
-  index: number
-  onReorder: (fromIndex: number, toIndex: number) => void
-}
-
 function DraggableContentItem({
   content,
   index,
@@ -250,10 +249,10 @@ function DraggableContentItem({
   )
 }
 
-// Updated Component with content library reordering
 function Component() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [contentSearchQuery, setContentSearchQuery] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [playlistName, setPlaylistName] = useState('')
   const [playlistDescription, setPlaylistDescription] = useState('')
@@ -275,6 +274,43 @@ function Component() {
     useState<PlaylistItem[]>(initialPlaylist)
   const [contentLibrary, setContentLibrary] =
     useState<PlaylistItem[]>(initialContent)
+
+  // Function to filter content library based on search query
+  const filterContentLibrary = (
+    items: PlaylistItem[],
+    query: string,
+  ): PlaylistItem[] => {
+    if (!query.trim()) return items
+
+    try {
+      // Check if the query looks like a regex pattern (contains regex special chars)
+      const hasRegexChars = /[.*+?^${}()|[\]\\]/.test(query)
+
+      if (hasRegexChars) {
+        // Try to use as regex
+        const regex = new RegExp(query, 'i')
+        return items.filter((item) => regex.test(item.name))
+      } else {
+        // Simple case-insensitive string search
+        const lowerQuery = query.toLowerCase()
+        return items.filter((item) =>
+          item.name.toLowerCase().includes(lowerQuery),
+        )
+      }
+    } catch {
+      // If regex is invalid, fall back to simple string search
+      const lowerQuery = query.toLowerCase()
+      return items.filter((item) =>
+        item.name.toLowerCase().includes(lowerQuery),
+      )
+    }
+  }
+
+  // Get filtered content library
+  const filteredContentLibrary = filterContentLibrary(
+    contentLibrary,
+    contentSearchQuery,
+  )
 
   const handleAddPlaylist = () => setIsCreateModalOpen(true)
 
@@ -309,7 +345,7 @@ function Component() {
     }
   }
 
-  // New function to handle content library reordering
+  // Function to handle content library reordering
   const handleReorderContentLibrary = (fromIndex: number, toIndex: number) => {
     const newItems = [...contentLibrary]
     const [movedItem] = newItems.splice(fromIndex, 1)
@@ -351,7 +387,6 @@ function Component() {
 
   return (
     <div className='w-full space-y-6'>
-      {/* Header section remains the same */}
       <div className='flex w-full items-center justify-between'>
         <h1 className='text-4xl font-bold'>Playlists</h1>
         <Dialog onOpenChange={setIsCreateModalOpen} open={isCreateModalOpen}>
@@ -394,7 +429,7 @@ function Component() {
             </DialogHeader>
 
             <div className='grid grid-cols-2 gap-6 py-4'>
-              {/* Left Column - Playlist Information (unchanged) */}
+              {/* Left Column - Playlist Information */}
               <div className='space-y-6'>
                 <Card>
                   <CardHeader>
@@ -482,7 +517,9 @@ function Component() {
                   <CardHeader>
                     <CardTitle className='flex items-center'>
                       <FileImageIcon className='mr-2 h-5 w-5' />
-                      Content Library ({contentLibrary.length})
+                      Content Library ({filteredContentLibrary.length}
+                      {contentSearchQuery ? ` of ${contentLibrary.length}` : ''}
+                      )
                     </CardTitle>
                   </CardHeader>
                   <CardContent className='flex flex-grow flex-col'>
@@ -491,9 +528,24 @@ function Component() {
                         <SearchIcon className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
                         <Input
                           className='pl-10'
+                          onChange={(e) =>
+                            setContentSearchQuery(e.target.value)
+                          }
                           placeholder='Search contents...'
+                          value={contentSearchQuery}
                         />
                       </div>
+                      {contentSearchQuery && (
+                        <div className='text-muted-foreground mt-2 text-xs'>
+                          {filteredContentLibrary.length} of{' '}
+                          {contentLibrary.length} items match
+                          {contentSearchQuery.includes('*') ||
+                          contentSearchQuery.includes('.') ||
+                          contentSearchQuery.includes('^')
+                            ? ' (regex mode)'
+                            : ''}
+                        </div>
+                      )}
                     </div>
                     <div className='flex-grow overflow-y-auto'>
                       <DropZone
@@ -502,15 +554,29 @@ function Component() {
                         onDropItem={handleReturnItemToLibrary}
                       >
                         <div className='space-y-2'>
-                          {contentLibrary.length > 0 ? (
-                            contentLibrary.map((content, index) => (
-                              <DraggableContentItem
-                                content={content}
-                                index={index}
-                                key={content.id}
-                                onReorder={handleReorderContentLibrary}
-                              />
-                            ))
+                          {filteredContentLibrary.length > 0 ? (
+                            filteredContentLibrary.map((content) => {
+                              // Get the original index in the full content library for reordering
+                              const originalIndex = contentLibrary.findIndex(
+                                (item) => item.id === content.id,
+                              )
+                              return (
+                                <DraggableContentItem
+                                  content={content}
+                                  index={originalIndex}
+                                  key={content.id}
+                                  onReorder={handleReorderContentLibrary}
+                                />
+                              )
+                            })
+                          ) : contentSearchQuery ? (
+                            <div className='text-muted-foreground py-8 text-center'>
+                              <SearchIcon className='mx-auto mb-2 h-12 w-12 opacity-50' />
+                              <p>No items match your search</p>
+                              <p className='text-sm'>
+                                Try a different search term or regex pattern
+                              </p>
+                            </div>
                           ) : (
                             <div className='text-muted-foreground py-8 text-center'>
                               <FileImageIcon className='mx-auto mb-2 h-12 w-12 opacity-50' />
@@ -528,7 +594,7 @@ function Component() {
         </Dialog>
       </div>
 
-      {/* Filters and Search Section (unchanged) */}
+      {/* Filters and Search Section */}
       <div className='flex w-full items-center justify-between'>
         <div className='flex items-center gap-2'>
           {quickFilters.map((filter) => (
