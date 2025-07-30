@@ -64,10 +64,6 @@ interface DraggablePlaylistItemProps {
   onReorder: (fromIndex: number, toIndex: number) => void
 }
 
-interface DraggableContentItemProps {
-  content: PlaylistItem
-}
-
 interface DropZoneProps {
   children: ReactNode
   onDropItem: (item: PlaylistItem) => void
@@ -76,14 +72,8 @@ interface DropZoneProps {
 }
 
 // Reusable Drop Zone Component
-function DropZone({
-  children,
-  onDropItem,
-  acceptedType,
-  dropIndicatorMessage,
-}: DropZoneProps) {
+function DropZone({ children, onDropItem, acceptedType }: DropZoneProps) {
   const elementRef = useRef<HTMLDivElement>(null)
-  const [isDropTarget, setIsDropTarget] = useState(false)
 
   useEffect(() => {
     const element = elementRef.current
@@ -93,10 +83,7 @@ function DropZone({
     const dropTargetCleanup = dropTargetForElements({
       element,
       canDrop: ({ source }) => (source.data as DragData).type === acceptedType,
-      onDragEnter: () => setIsDropTarget(true),
-      onDragLeave: () => setIsDropTarget(false),
       onDrop: ({ source }) => {
-        setIsDropTarget(false)
         const sourceData = source.data as DragData
         const item = (sourceData.item || sourceData.content) as PlaylistItem
         onDropItem(item)
@@ -110,17 +97,7 @@ function DropZone({
   }, [onDropItem, acceptedType])
 
   return (
-    <div
-      className={`min-h-[200px] rounded-lg transition-all ${
-        isDropTarget ? 'border-green-200 bg-green-50 ring-2 ring-green-500' : ''
-      }`}
-      ref={elementRef}
-    >
-      {isDropTarget && (
-        <div className='py-4 text-center font-medium text-green-600'>
-          {dropIndicatorMessage}
-        </div>
-      )}
+    <div className='min-h-[200px] rounded-lg transition-all' ref={elementRef}>
       {children}
     </div>
   )
@@ -133,17 +110,15 @@ function DraggablePlaylistItem({
   onReorder,
 }: DraggablePlaylistItemProps) {
   const elementRef = useRef<HTMLDivElement>(null)
-  const dragHandleRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isDropTarget, setIsDropTarget] = useState(false)
 
   useEffect(() => {
     const element = elementRef.current
-    const dragHandle = dragHandleRef.current
-    if (!element || !dragHandle) return
+    if (!element) return
 
     const cleanupDraggable = draggable({
-      element: dragHandle,
+      element, // The entire element is the drag handle now
       getInitialData: () => ({ type: 'playlist-item', index, item }),
       onDragStart: () => setIsDragging(true),
       onDrop: () => setIsDragging(false),
@@ -172,7 +147,7 @@ function DraggablePlaylistItem({
 
   return (
     <div
-      className={`flex items-center justify-between rounded-lg bg-gray-50 p-3 transition-all ${
+      className={`flex cursor-grab items-center justify-between rounded-lg bg-gray-50 p-3 transition-all active:cursor-grabbing ${
         isDragging ? 'scale-95 opacity-50' : ''
       } ${isDropTarget ? 'bg-blue-50 ring-2 ring-blue-500' : ''}`}
       ref={elementRef}
@@ -184,42 +159,83 @@ function DraggablePlaylistItem({
           {item.duration} min
         </div>
       </div>
-      <div
-        className='cursor-grab rounded p-1 hover:bg-gray-200 active:cursor-grabbing'
-        ref={dragHandleRef}
-      >
-        <GripVerticalIcon className='h-4 w-4 text-gray-400' />
-      </div>
+      {/* Grip icon is now just a visual affordance */}
+      <GripVerticalIcon className='h-4 w-4 text-gray-400' />
     </div>
   )
 }
 
 // Draggable Content Library Item
-function DraggableContentItem({ content }: DraggableContentItemProps) {
+interface DraggableContentItemProps {
+  content: PlaylistItem
+  index: number
+  onReorder: (fromIndex: number, toIndex: number) => void
+}
+
+function DraggableContentItem({
+  content,
+  index,
+  onReorder,
+}: DraggableContentItemProps) {
   const elementRef = useRef<HTMLDivElement>(null)
-  const dragHandleRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isDropTarget, setIsDropTarget] = useState(false)
 
   useEffect(() => {
     const element = elementRef.current
-    const dragHandle = dragHandleRef.current
-    if (!element || !dragHandle) return
+    if (!element) return
 
-    const cleanup = draggable({
-      element: dragHandle,
-      getInitialData: () => ({ type: 'content-item', content }),
+    const cleanupDraggable = draggable({
+      element,
+      getInitialData: () => ({ type: 'content-item', index, content }),
       onDragStart: () => setIsDragging(true),
       onDrop: () => setIsDragging(false),
     })
 
-    return cleanup
-  }, [content])
+    const cleanupDropTarget = dropTargetForElements({
+      element,
+      canDrop: ({ source }) => {
+        const sourceData = source.data as DragData
+        // Accept both content-item (for reordering) and playlist-item (for returning from playlist)
+        return (
+          sourceData.type === 'content-item' ||
+          sourceData.type === 'playlist-item'
+        )
+      },
+      onDragEnter: ({ source }) => {
+        const sourceData = source.data as DragData
+        // Only show drop target indicator for content-item reordering
+        if (sourceData.type === 'content-item') {
+          setIsDropTarget(true)
+        }
+      },
+      onDragLeave: () => setIsDropTarget(false),
+      onDrop: ({ source }) => {
+        setIsDropTarget(false)
+        const sourceData = source.data as DragData
+
+        if (sourceData.type === 'content-item') {
+          // Handle reordering within content library
+          const sourceIndex = sourceData.index as number
+          if (sourceIndex !== index) {
+            onReorder(sourceIndex, index)
+          }
+        }
+        // Note: playlist-item drops are handled by the DropZone wrapper
+      },
+    })
+
+    return () => {
+      cleanupDraggable()
+      cleanupDropTarget()
+    }
+  }, [content, index, onReorder])
 
   return (
     <div
-      className={`flex items-center justify-between rounded-lg bg-gray-50 p-3 transition-all hover:bg-gray-100 ${
+      className={`flex cursor-grab items-center justify-between rounded-lg bg-gray-50 p-3 transition-all hover:bg-gray-100 active:cursor-grabbing ${
         isDragging ? 'scale-95 opacity-50' : ''
-      }`}
+      } ${isDropTarget ? 'bg-blue-50 ring-2 ring-blue-500' : ''}`}
       ref={elementRef}
     >
       <div className='flex items-center space-x-3'>
@@ -229,16 +245,12 @@ function DraggableContentItem({ content }: DraggableContentItemProps) {
           {content.duration} min
         </div>
       </div>
-      <div
-        className='cursor-grab rounded p-1 hover:bg-gray-200 active:cursor-grabbing'
-        ref={dragHandleRef}
-      >
-        <GripVerticalIcon className='h-4 w-4 text-gray-400' />
-      </div>
+      <GripVerticalIcon className='h-4 w-4 text-gray-400' />
     </div>
   )
 }
 
+// Updated Component with content library reordering
 function Component() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
@@ -297,6 +309,16 @@ function Component() {
     }
   }
 
+  // New function to handle content library reordering
+  const handleReorderContentLibrary = (fromIndex: number, toIndex: number) => {
+    const newItems = [...contentLibrary]
+    const [movedItem] = newItems.splice(fromIndex, 1)
+    if (movedItem) {
+      newItems.splice(toIndex, 0, movedItem)
+      setContentLibrary(newItems)
+    }
+  }
+
   const handleAddContentToPlaylist = (content: PlaylistItem) => {
     if (playlistItems.some((item) => item.id === content.id)) return // Avoid duplicates
     setPlaylistItems((prev) => [...prev, content])
@@ -329,6 +351,7 @@ function Component() {
 
   return (
     <div className='w-full space-y-6'>
+      {/* Header section remains the same */}
       <div className='flex w-full items-center justify-between'>
         <h1 className='text-4xl font-bold'>Playlists</h1>
         <Dialog onOpenChange={setIsCreateModalOpen} open={isCreateModalOpen}>
@@ -357,7 +380,8 @@ function Component() {
                   <DialogTitle>Create New Playlist</DialogTitle>
                   <DialogDescription>
                     Add and organize contents to form a playlist. Drag items
-                    between the content library and the playlist.
+                    between the content library and the playlist. You can also
+                    reorder items within each section.
                   </DialogDescription>
                 </div>
                 <div className='flex items-center gap-2'>
@@ -370,7 +394,7 @@ function Component() {
             </DialogHeader>
 
             <div className='grid grid-cols-2 gap-6 py-4'>
-              {/* Left Column - Playlist Information */}
+              {/* Left Column - Playlist Information (unchanged) */}
               <div className='space-y-6'>
                 <Card>
                   <CardHeader>
@@ -452,7 +476,7 @@ function Component() {
                 </Card>
               </div>
 
-              {/* Right Column - Content Library */}
+              {/* Right Column - Content Library with reordering */}
               <div>
                 <Card className='flex h-full flex-col'>
                   <CardHeader>
@@ -479,10 +503,12 @@ function Component() {
                       >
                         <div className='space-y-2'>
                           {contentLibrary.length > 0 ? (
-                            contentLibrary.map((content) => (
+                            contentLibrary.map((content, index) => (
                               <DraggableContentItem
                                 content={content}
+                                index={index}
                                 key={content.id}
+                                onReorder={handleReorderContentLibrary}
                               />
                             ))
                           ) : (
@@ -502,7 +528,7 @@ function Component() {
         </Dialog>
       </div>
 
-      {/* Filters and Search Section */}
+      {/* Filters and Search Section (unchanged) */}
       <div className='flex w-full items-center justify-between'>
         <div className='flex items-center gap-2'>
           {quickFilters.map((filter) => (
