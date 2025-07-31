@@ -8,8 +8,7 @@
     ],
     "catalog": {
       "@types/bun": "^1.2.19",
-      "@types/luxon": "^3.7.0",
-      "luxon": "^3.7.1",
+      "date-fns": "^4.1.0",
       "zod": "^4.0.13"
     }
   },

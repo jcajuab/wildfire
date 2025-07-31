@@ -9,11 +9,9 @@
     "dev": "bun --hot src/index.ts"
   },
   "dependencies": {
-    "luxon": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
-    "@types/luxon": "catalog:"
+    "@types/bun": "catalog:"
   }
 }
