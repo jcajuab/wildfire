@@ -1,6 +1,11 @@
 import { Label } from '@radix-ui/react-label'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@radix-ui/react-tooltip'
 import { createFileRoute } from '@tanstack/react-router'
-import { PlusIcon } from 'lucide-react'
+import { InfoIcon, PlusIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { DataTable } from '#/components/ui/data-table'
@@ -14,6 +19,7 @@ import {
   DialogTrigger,
 } from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
+import { Switch } from '#/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { columns, type Role } from '#/types/columnRoles'
 
@@ -45,6 +51,87 @@ const data: Role[] = [
   })),
 ]
 
+const permissions = [
+  {
+    key: 'viewDisplays',
+    label: 'View Displays',
+    enabled: true,
+    tooltipContent: 'Allows you to view display configurations',
+  },
+  {
+    key: 'manageDisplays',
+    label: 'Manage Displays',
+    enabled: true,
+    tooltipContent: 'Allows updates to display settings',
+  },
+  {
+    key: 'controlDisplays',
+    label: 'Control Displays',
+    enabled: true,
+    tooltipContent: 'Full control over display operations',
+  },
+  {
+    key: 'viewContent',
+    label: 'View Content',
+    enabled: true,
+    tooltipContent: 'Permission to read produced content',
+  },
+  {
+    key: 'manageContent',
+    label: 'Manage Content',
+    enabled: true,
+    tooltipContent: 'Create, edit or delete content entries',
+  },
+  {
+    key: 'viewPlaylists',
+    label: 'View Playlists',
+    enabled: true,
+    tooltipContent: 'See existing playlists',
+  },
+  {
+    key: 'managePlaylists',
+    label: 'Manage Playlists',
+    enabled: true,
+    tooltipContent: 'Add, remove or reorder playlists',
+  },
+  {
+    key: 'viewSchedules',
+    label: 'View Schedules',
+    enabled: true,
+    tooltipContent: 'Access scheduling information',
+  },
+  {
+    key: 'manageSchedules',
+    label: 'Manage Schedules',
+    enabled: true,
+    tooltipContent: 'Modify display schedules',
+  },
+  {
+    key: 'viewUsers',
+    label: 'View Users',
+    enabled: true,
+    tooltipContent: 'See user list and details',
+  },
+  {
+    key: 'manageUsers',
+    label: 'Manage Users',
+    enabled: true,
+    tooltipContent: 'Add, edit or remove users',
+  },
+  {
+    key: 'viewRoles',
+    label: 'View Roles',
+    enabled: false,
+    tooltipContent: 'See assigned roles',
+  },
+  {
+    key: 'manageRoles',
+    label: 'Manage Roles',
+    enabled: true,
+    tooltipContent: 'Assign or modify roles',
+  },
+]
+
 function Component() {
   return (
     <>
@@ -72,9 +159,50 @@ function Component() {
                   <Label htmlFor='role'>Role Name</Label>
                   <Input id='role' placeholder='Enter role name' />
                 </TabsContent>
-                <TabsContent value='permissions'>
-                  Change your permissions here.
+                <TabsContent
+                  className='overflow-hidden rounded-lg border border-gray-300'
+                  value='permissions'
+                >
+                  <table className='min-w-full table-auto border-collapse'>
+                    <tbody>
+                      {permissions.map(({ key, label, tooltipContent }) => (
+                        <tr className='border-b border-gray-200' key={key}>
+                          <div className='flex items-center'>
+                            <td className='text-muted-foreground px-4 py-2'>
+                              {label}
+                            </td>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <InfoIcon className='text-muted-foreground inline h-4 w-4' />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{tooltipContent}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <td className='px-4 py-2 text-right'>
+                            <Switch
+                              className='scale-125'
+                              id={key}
+                              onCheckedChange={(val) => {
+                                console.log(`${key} toggled to`, val)
+                                // your toggle logic
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Add bottom rounding on the last row */}
+                      {permissions.length > 0 && (
+                        <tr>
+                          <td className='rounded-bl-lg'></td>
+                          <td className='rounded-br-lg'></td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </TabsContent>
+
                 <TabsContent value='manage-users'>
                   Manage users here.
                 </TabsContent>
