@@ -3,6 +3,14 @@ import { PlusIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { DataTable } from '#/components/ui/data-table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '#/components/ui/dialog'
 import { columns, type Role } from '#/types/columnRoles'
 
 export const Route = createFileRoute('/admin/roles')({
@@ -39,9 +47,22 @@ function Component() {
       {/* Header */}
       <div className='flex items-center justify-between'>
         <h1 className='text-4xl font-bold'>Roles</h1>
-        <Button className=''>
-          <PlusIcon /> Create Role
-        </Button>
+        <Dialog>
+          <DialogTrigger>
+            <Button className='cursor-pointer'>
+              <PlusIcon /> Create Role
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Role</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete your
+                account and remove your data from our servers.
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <DataTable columns={columns} data={data} />
