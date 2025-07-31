@@ -10,7 +10,7 @@ export const Route = createFileRoute('/admin')({
   component: Component,
 })
 
-// TODO: Drop the default styling and just move the sidebar component definition here since it's not used anywhere else anyway.
+// TODO: Move the sidebar component definition here since it's not used anywhere else anyway.
 function Component() {
   return (
     <SidebarProvider>

@@ -34,9 +34,7 @@
               ":PATH:"
             ]
           }
-        },
-        "useSortedAttributes": "on",
-        "useSortedProperties": "on"
+        }
       }
     }
   }
