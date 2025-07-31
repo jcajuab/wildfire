@@ -1,25 +1,9 @@
-import {
-  draggable,
-  dropTargetForElements,
-} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element'
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  ClockIcon,
-  EyeIcon,
-  FileImageIcon,
-  FilterIcon,
-  GripVerticalIcon,
-  InfoIcon,
-  ListMusicIcon,
-  MoreVerticalIcon,
-  PencilIcon,
-  PlusIcon,
-  SearchIcon,
-  Trash2Icon,
-} from 'lucide-react'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { FilterIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { useState } from 'react'
 
+import { CreatePlaylistModal } from '../components/playlist/create-playlist-modal'
+import { PlaylistCard } from '../components/playlist/playlist-card'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,22 +16,8 @@ import {
 } from '../components/ui/alert-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../components/ui/dialog'
+import { Dialog, DialogTrigger } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../components/ui/popover'
 import {
   Sheet,
   SheetContent,
@@ -56,222 +26,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '../components/ui/sheet'
-import { Textarea } from '../components/ui/textarea'
+// Import types
+import type {
+  CreatedPlaylist,
+  PlaylistItem,
+  PlaylistStatus,
+} from '../types/playlist'
 
 export const Route = createFileRoute('/admin/playlists')({
   component: Component,
 })
-
-// Type definitions
-interface PlaylistItem {
-  id: number
-  name: string
-  duration: string
-}
-
-interface CreatedPlaylist {
-  id: number
-  name: string
-  description: string
-  author: string
-  items: PlaylistItem[]
-  createdAt: Date
-}
-
-interface DragData {
-  [key: string]: unknown
-  type: string
-  index?: number
-  item?: PlaylistItem
-  content?: PlaylistItem
-}
-
-interface DraggablePlaylistItemProps {
-  item: PlaylistItem
-  index: number
-  onReorder: (fromIndex: number, toIndex: number) => void
-}
-
-interface DraggableContentItemProps {
-  content: PlaylistItem
-  index: number
-  onReorder: (fromIndex: number, toIndex: number) => void
-}
-
-interface DropZoneProps {
-  children: ReactNode
-  onDropItem: (item: PlaylistItem) => void
-  acceptedType: string
-  dropIndicatorMessage: string
-}
-
-// Reusable Drop Zone Component
-function DropZone({ children, onDropItem, acceptedType }: DropZoneProps) {
-  const elementRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const element = elementRef.current
-    if (!element) return
-
-    const autoScrollCleanup = autoScrollForElements({ element })
-    const dropTargetCleanup = dropTargetForElements({
-      element,
-      canDrop: ({ source }) => (source.data as DragData).type === acceptedType,
-      onDrop: ({ source }) => {
-        const sourceData = source.data as DragData
-        const item = (sourceData.item || sourceData.content) as PlaylistItem
-        onDropItem(item)
-      },
-    })
-
-    return () => {
-      autoScrollCleanup()
-      dropTargetCleanup()
-    }
-  }, [onDropItem, acceptedType])
-
-  return (
-    <div className='min-h-[200px] rounded-lg transition-all' ref={elementRef}>
-      {children}
-    </div>
-  )
-}
-
-// Draggable Playlist Item Component
-function DraggablePlaylistItem({
-  item,
-  index,
-  onReorder,
-}: DraggablePlaylistItemProps) {
-  const elementRef = useRef<HTMLDivElement>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isDropTarget, setIsDropTarget] = useState(false)
-
-  useEffect(() => {
-    const element = elementRef.current
-    if (!element) return
-
-    const cleanupDraggable = draggable({
-      element,
-      getInitialData: () => ({ type: 'playlist-item', index, item }),
-      onDragStart: () => setIsDragging(true),
-      onDrop: () => setIsDragging(false),
-    })
-
-    const cleanupDropTarget = dropTargetForElements({
-      element,
-      canDrop: ({ source }) =>
-        (source.data as DragData).type === 'playlist-item',
-      onDragEnter: () => setIsDropTarget(true),
-      onDragLeave: () => setIsDropTarget(false),
-      onDrop: ({ source }) => {
-        setIsDropTarget(false)
-        const sourceIndex = (source.data as DragData).index as number
-        if (sourceIndex !== index) {
-          onReorder(sourceIndex, index)
-        }
-      },
-    })
-
-    return () => {
-      cleanupDraggable()
-      cleanupDropTarget()
-    }
-  }, [item, index, onReorder])
-
-  return (
-    <div
-      className={`flex cursor-grab items-center justify-between rounded-lg bg-gray-50 p-3 transition-all active:cursor-grabbing ${
-        isDragging ? 'scale-95 opacity-50' : ''
-      } ${isDropTarget ? 'bg-blue-50 ring-2 ring-blue-500' : ''}`}
-      ref={elementRef}
-    >
-      <div className='flex items-center space-x-3'>
-        <div className='text-sm font-medium'>{item.name}</div>
-        <div className='text-muted-foreground flex items-center text-xs'>
-          <ClockIcon className='mr-1 h-3 w-3' />
-          {item.duration} min
-        </div>
-      </div>
-      <GripVerticalIcon className='h-4 w-4 text-gray-400' />
-    </div>
-  )
-}
-
-// Draggable Content Library Item
-function DraggableContentItem({
-  content,
-  index,
-  onReorder,
-}: DraggableContentItemProps) {
-  const elementRef = useRef<HTMLDivElement>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isDropTarget, setIsDropTarget] = useState(false)
-
-  useEffect(() => {
-    const element = elementRef.current
-    if (!element) return
-
-    const cleanupDraggable = draggable({
-      element,
-      getInitialData: () => ({ type: 'content-item', index, content }),
-      onDragStart: () => setIsDragging(true),
-      onDrop: () => setIsDragging(false),
-    })
-
-    const cleanupDropTarget = dropTargetForElements({
-      element,
-      canDrop: ({ source }) => {
-        const sourceData = source.data as DragData
-        return (
-          sourceData.type === 'content-item' ||
-          sourceData.type === 'playlist-item'
-        )
-      },
-      onDragEnter: ({ source }) => {
-        const sourceData = source.data as DragData
-        if (sourceData.type === 'content-item') {
-          setIsDropTarget(true)
-        }
-      },
-      onDragLeave: () => setIsDropTarget(false),
-      onDrop: ({ source }) => {
-        setIsDropTarget(false)
-        const sourceData = source.data as DragData
-
-        if (sourceData.type === 'content-item') {
-          const sourceIndex = sourceData.index as number
-          if (sourceIndex !== index) {
-            onReorder(sourceIndex, index)
-          }
-        }
-      },
-    })
-
-    return () => {
-      cleanupDraggable()
-      cleanupDropTarget()
-    }
-  }, [content, index, onReorder])
-
-  return (
-    <div
-      className={`flex cursor-grab items-center justify-between rounded-lg bg-gray-50 p-3 transition-all hover:bg-gray-100 active:cursor-grabbing ${
-        isDragging ? 'scale-95 opacity-50' : ''
-      } ${isDropTarget ? 'bg-blue-50 ring-2 ring-blue-500' : ''}`}
-      ref={elementRef}
-    >
-      <div className='flex items-center space-x-3'>
-        <div className='text-sm font-medium'>{content.name}</div>
-        <div className='text-muted-foreground flex items-center text-xs'>
-          <ClockIcon className='mr-1 h-3 w-3' />
-          {content.duration} min
-        </div>
-      </div>
-      <GripVerticalIcon className='h-4 w-4 text-gray-400' />
-    </div>
-  )
-}
 
 function Component() {
   const [activeFilter, setActiveFilter] = useState('All')
@@ -347,10 +111,55 @@ function Component() {
     }
   }
 
+  const filterPlaylists = (
+    playlists: CreatedPlaylist[],
+    query: string,
+  ): CreatedPlaylist[] => {
+    if (!query.trim()) return playlists
+    try {
+      const hasRegexChars = /[.*+?^${}()|[\]\\]/.test(query)
+      const regex = hasRegexChars ? new RegExp(query, 'i') : null
+      const lowerQuery = query.toLowerCase()
+      return playlists.filter((playlist) =>
+        regex
+          ? regex.test(playlist.name) || regex.test(playlist.description)
+          : playlist.name.toLowerCase().includes(lowerQuery) ||
+            playlist.description.toLowerCase().includes(lowerQuery),
+      )
+    } catch {
+      const lowerQuery = query.toLowerCase()
+      return playlists.filter(
+        (playlist) =>
+          playlist.name.toLowerCase().includes(lowerQuery) ||
+          playlist.description.toLowerCase().includes(lowerQuery),
+      )
+    }
+  }
+
   const filteredContentLibrary = filterContentLibrary(
     contentLibrary,
     contentSearchQuery,
   )
+
+  const filteredAndStatusFilteredPlaylists = (() => {
+    let filtered = filterPlaylists(createdPlaylists, searchQuery)
+
+    if (activeFilter !== 'All') {
+      const statusMap = {
+        Draft: 'draft',
+        'In Use': 'ready',
+      } as const
+
+      const targetStatus = statusMap[activeFilter as keyof typeof statusMap]
+      if (targetStatus) {
+        filtered = filtered.filter(
+          (playlist) => playlist.status === targetStatus,
+        )
+      }
+    }
+
+    return filtered
+  })()
 
   const closeAndResetModal = () => {
     setEditingPlaylist(null)
@@ -382,7 +191,7 @@ function Component() {
     setIsCreateModalOpen(true)
   }
 
-  const handleSavePlaylist = () => {
+  const handleSavePlaylist = (status: PlaylistStatus = 'ready') => {
     if (!playlistName.trim()) return
 
     if (editingPlaylist) {
@@ -391,6 +200,7 @@ function Component() {
         name: playlistName,
         description: playlistDescription || 'No description provided.',
         items: [...playlistItems],
+        status: status,
       }
       setCreatedPlaylists((prev) =>
         prev.map((p) => (p.id === editingPlaylist.id ? updatedPlaylist : p)),
@@ -403,6 +213,7 @@ function Component() {
         author: 'Admin',
         items: [...playlistItems],
         createdAt: new Date(),
+        status: status,
       }
       setCreatedPlaylists((prev) => [newPlaylist, ...prev])
     }
@@ -462,107 +273,7 @@ function Component() {
     return formatDuration(totalSeconds)
   }
 
-  const PlaylistCard = ({
-    playlist,
-    onEdit,
-    onDeletePrompt,
-  }: {
-    playlist: CreatedPlaylist
-    onEdit: (playlist: CreatedPlaylist) => void
-    onDeletePrompt: (id: number) => void
-  }) => {
-    const totalSeconds = playlist.items.reduce(
-      (acc, item) => acc + parseDuration(item.duration),
-      0,
-    )
-
-    return (
-      <Card className='w-full max-w-md'>
-        <CardHeader className='pb-3'>
-          <div className='flex items-start justify-between'>
-            <div className='flex-1'>
-              <CardTitle className='text-xl font-bold text-gray-900'>
-                {playlist.name}
-              </CardTitle>
-              <p className='mt-1 text-sm text-gray-600'>by {playlist.author}</p>
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button className='h-8 w-8 p-0' variant='ghost'>
-                  <MoreVerticalIcon className='h-5 w-5 text-gray-500' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-48 p-1'>
-                <Button
-                  className='flex w-full cursor-pointer items-center justify-start p-2 text-sm'
-                  onClick={() => onEdit(playlist)}
-                  variant='ghost'
-                >
-                  <PencilIcon className='mr-2 h-4 w-4' />
-                  Edit Playlist
-                </Button>
-                <Button
-                  className='flex w-full cursor-pointer items-center justify-start p-2 text-sm'
-                  onClick={() => {
-                    /* No function for now */
-                  }}
-                  variant='ghost'
-                >
-                  <EyeIcon className='mr-2 h-4 w-4' />
-                  Preview Playlist
-                </Button>
-                <div className='my-1 h-px bg-gray-200' />
-                <Button
-                  className='flex w-full cursor-pointer items-center justify-start p-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-600'
-                  onClick={() => onDeletePrompt(playlist.id)}
-                  variant='ghost'
-                >
-                  <Trash2Icon className='mr-2 h-4 w-4' />
-                  Delete Playlist
-                </Button>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <p className='mt-3 text-sm text-gray-600'>{playlist.description}</p>
-        </CardHeader>
-        <CardContent className='pt-0'>
-          <div className='mb-4 flex items-center gap-4 text-sm text-gray-600'>
-            <div className='flex items-center gap-1'>
-              <ListMusicIcon className='h-4 w-4' />
-              <span>{playlist.items.length} items</span>
-            </div>
-            <div className='flex items-center gap-1'>
-              <ClockIcon className='h-4 w-4' />
-              <span>
-                {formatDuration(totalSeconds)}{' '}
-                {totalSeconds < 60 ? 'sec' : 'min'}
-              </span>
-            </div>
-          </div>
-
-          <div className='grid grid-cols-2 gap-2'>
-            {playlist.items.slice(0, 4).map((item) => (
-              <div className='relative' key={item.id}>
-                <div className='rounded-md bg-blue-500 px-3 py-2 text-center text-xs font-medium text-white'>
-                  {item.name}
-                </div>
-                <div className='mt-1 text-center text-xs text-gray-500'>
-                  {item.duration}
-                </div>
-              </div>
-            ))}
-            {playlist.items.length > 4 && (
-              <div className='col-span-2 mt-1 text-center text-xs text-gray-500'>
-                +{playlist.items.length - 4} more items
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const quickFilters = ['All', 'Ready', 'Live', 'Down']
+  const quickFilters = ['All', 'Draft', 'In Use']
 
   return (
     <div className='w-full space-y-6'>
@@ -579,203 +290,29 @@ function Component() {
               Create Playlist
             </Button>
           </DialogTrigger>
-          <DialogContent
-            className='overflow-y-auto [&>button]:hidden'
-            style={{
-              width: '88vw',
-              height: '88vh',
-              maxWidth: 'none',
-              maxHeight: 'none',
-            }}
-          >
-            <DialogHeader>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <DialogTitle>
-                    {editingPlaylist ? 'Edit Playlist' : 'Create New Playlist'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Add and organize contents to form a playlist. Drag items
-                    between the content library and the playlist. You can also
-                    reorder items within each section.
-                  </DialogDescription>
-                </div>
-                <div className='flex items-center gap-2'>
-                  <Button onClick={closeAndResetModal} variant='outline'>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSavePlaylist}>
-                    {editingPlaylist ? 'Save Changes' : 'Create'}
-                  </Button>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className='grid grid-cols-2 gap-6 py-4'>
-              <div className='space-y-6'>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className='flex items-center'>
-                      <InfoIcon className='mr-2 h-5 w-5' />
-                      Playlist Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className='space-y-4'>
-                    <div>
-                      <Label htmlFor='playlist-name'>Name</Label>
-                      <Input
-                        className='mt-1'
-                        id='playlist-name'
-                        onChange={(e) => setPlaylistName(e.target.value)}
-                        placeholder='Enter playlist name'
-                        value={playlistName}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor='playlist-description'>
-                        Description (Optional)
-                      </Label>
-                      <Textarea
-                        className='mt-1 min-h-[100px]'
-                        id='playlist-description'
-                        onChange={(e) => setPlaylistDescription(e.target.value)}
-                        placeholder='Enter playlist description'
-                        value={playlistDescription}
-                      />
-                    </div>
-                    <div className='text-muted-foreground text-sm'>
-                      <strong>Total Duration:</strong>{' '}
-                      {calculateTotalDuration()}
-                      {(() => {
-                        const total = parseDuration(calculateTotalDuration())
-                        return total < 60 ? 'sec' : 'min'
-                      })()}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <div className='flex items-center justify-between'>
-                      <CardTitle className='flex items-center'>
-                        <ListMusicIcon className='mr-2 h-5 w-5' />
-                        Playlist Items ({playlistItems.length})
-                      </CardTitle>
-                      <Button size='sm' variant='outline'>
-                        Preview
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <DropZone
-                      acceptedType='content-item'
-                      dropIndicatorMessage='Drop to add to playlist'
-                      onDropItem={handleAddContentToPlaylist}
-                    >
-                      <div className='space-y-2'>
-                        {playlistItems.length === 0 ? (
-                          <div className='text-muted-foreground py-8 text-center'>
-                            <ListMusicIcon className='mx-auto mb-2 h-12 w-12 opacity-50' />
-                            <p>No items in playlist</p>
-                            <p className='text-sm'>
-                              Drag content from the library to add items
-                            </p>
-                          </div>
-                        ) : (
-                          playlistItems.map((item, index) => (
-                            <DraggablePlaylistItem
-                              index={index}
-                              item={item}
-                              key={item.id}
-                              onReorder={handleReorderPlaylistItems}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </DropZone>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div>
-                <Card className='flex h-full flex-col'>
-                  <CardHeader>
-                    <CardTitle className='flex items-center'>
-                      <FileImageIcon className='mr-2 h-5 w-5' />
-                      Content Library ({filteredContentLibrary.length}
-                      {contentSearchQuery ? ` of ${contentLibrary.length}` : ''}
-                      )
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className='flex flex-grow flex-col'>
-                    <div className='mb-4'>
-                      <div className='relative'>
-                        <SearchIcon className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
-                        <Input
-                          className='pl-10'
-                          onChange={(e) =>
-                            setContentSearchQuery(e.target.value)
-                          }
-                          placeholder='Search contents...'
-                          value={contentSearchQuery}
-                        />
-                      </div>
-                      {contentSearchQuery && (
-                        <div className='text-muted-foreground mt-2 text-xs'>
-                          {filteredContentLibrary.length} of{' '}
-                          {contentLibrary.length} items match
-                          {contentSearchQuery.includes('*') ||
-                          contentSearchQuery.includes('.') ||
-                          contentSearchQuery.includes('^')
-                            ? ' (regex mode)'
-                            : ''}
-                        </div>
-                      )}
-                    </div>
-                    <div className='flex-grow overflow-y-auto'>
-                      <DropZone
-                        acceptedType='playlist-item'
-                        dropIndicatorMessage='Drop to return to library'
-                        onDropItem={handleReturnItemToLibrary}
-                      >
-                        <div className='space-y-2'>
-                          {filteredContentLibrary.length > 0 ? (
-                            filteredContentLibrary.map((content) => {
-                              const originalIndex = contentLibrary.findIndex(
-                                (item) => item.id === content.id,
-                              )
-                              return (
-                                <DraggableContentItem
-                                  content={content}
-                                  index={originalIndex}
-                                  key={content.id}
-                                  onReorder={handleReorderContentLibrary}
-                                />
-                              )
-                            })
-                          ) : contentSearchQuery ? (
-                            <div className='text-muted-foreground py-8 text-center'>
-                              <SearchIcon className='mx-auto mb-2 h-12 w-12 opacity-50' />
-                              <p>No items match your search</p>
-                              <p className='text-sm'>
-                                Try a different search term or regex pattern
-                              </p>
-                            </div>
-                          ) : (
-                            <div className='text-muted-foreground py-8 text-center'>
-                              <FileImageIcon className='mx-auto mb-2 h-12 w-12 opacity-50' />
-                              <p>Content library is empty</p>
-                            </div>
-                          )}
-                        </div>
-                      </DropZone>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </DialogContent>
         </Dialog>
+
+        <CreatePlaylistModal
+          calculateTotalDuration={calculateTotalDuration}
+          contentLibrary={contentLibrary}
+          contentSearchQuery={contentSearchQuery}
+          editingPlaylist={editingPlaylist}
+          filteredContentLibrary={filteredContentLibrary}
+          isOpen={isCreateModalOpen}
+          onAddContentToPlaylist={handleAddContentToPlaylist}
+          onClose={closeAndResetModal}
+          onReorderContentLibrary={handleReorderContentLibrary}
+          onReorderPlaylistItems={handleReorderPlaylistItems}
+          onReturnItemToLibrary={handleReturnItemToLibrary}
+          onSave={handleSavePlaylist}
+          parseDuration={parseDuration}
+          playlistDescription={playlistDescription}
+          playlistItems={playlistItems}
+          playlistName={playlistName}
+          setContentSearchQuery={setContentSearchQuery}
+          setPlaylistDescription={setPlaylistDescription}
+          setPlaylistName={setPlaylistName}
+        />
       </div>
 
       <div className='flex w-full items-center justify-between'>
@@ -818,15 +355,32 @@ function Component() {
               placeholder='Search playlists...'
               value={searchQuery}
             />
+            {searchQuery && (
+              <div className='text-muted-foreground absolute -bottom-5 left-3 text-xs'>
+                {filteredAndStatusFilteredPlaylists.length} of{' '}
+                {createdPlaylists.length} playlists match
+                {searchQuery.includes('*') ||
+                searchQuery.includes('.') ||
+                searchQuery.includes('^')
+                  ? ' (regex mode)'
+                  : ''}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {createdPlaylists.length > 0 && (
         <div className='space-y-4'>
-          <h2 className='text-2xl font-semibold'>Created Playlists</h2>
+          <h2 className='text-2xl font-semibold'>
+            {activeFilter === 'All'
+              ? 'All Playlists'
+              : `${activeFilter} Playlists`}
+            {searchQuery &&
+              ` (${filteredAndStatusFilteredPlaylists.length} found)`}
+          </h2>
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
-            {createdPlaylists.map((playlist) => (
+            {filteredAndStatusFilteredPlaylists.map((playlist) => (
               <PlaylistCard
                 key={playlist.id}
                 onDeletePrompt={handlePromptDelete}
@@ -835,8 +389,20 @@ function Component() {
               />
             ))}
           </div>
+          {filteredAndStatusFilteredPlaylists.length === 0 &&
+            (searchQuery || activeFilter !== 'All') && (
+              <div className='text-muted-foreground py-8 text-center'>
+                <SearchIcon className='mx-auto mb-2 h-12 w-12 opacity-50' />
+                <p>No playlists match your current filters</p>
+                <p className='text-sm'>
+                  Try adjusting your search terms or filter selection
+                </p>
+              </div>
+            )}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog
         onOpenChange={setIsDeleteConfirmOpen}
         open={isDeleteConfirmOpen}
