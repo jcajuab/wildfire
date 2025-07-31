@@ -1,3 +1,4 @@
+import { Label } from '@radix-ui/react-label'
 import { createFileRoute } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 
@@ -5,12 +6,15 @@ import { Button } from '#/components/ui/button'
 import { DataTable } from '#/components/ui/data-table'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '#/components/ui/dialog'
+import { Input } from '#/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { columns, type Role } from '#/types/columnRoles'
 
 export const Route = createFileRoute('/admin/roles')({
@@ -55,12 +59,44 @@ function Component() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Role</DialogTitle>
-              <DialogDescription>
-                This action cannot be undone. This will permanently delete your
-                account and remove your data from our servers.
-              </DialogDescription>
+              <DialogTitle className='mb-3'>Create New Role</DialogTitle>
+              <Tabs className='w-full' defaultValue='display'>
+                <TabsList className='mb-3 w-full'>
+                  <TabsTrigger value='display'>Display</TabsTrigger>
+                  <TabsTrigger value='permissions'>Permissions</TabsTrigger>
+                  <TabsTrigger value='manage-users'>
+                    Manage Users (X)
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent className='flex flex-col gap-2' value='display'>
+                  <Label htmlFor='role'>Role Name</Label>
+                  <Input id='role' placeholder='Enter role name' />
+                </TabsContent>
+                <TabsContent value='permissions'>
+                  Change your permissions here.
+                </TabsContent>
+                <TabsContent value='manage-users'>
+                  Manage users here.
+                </TabsContent>
+              </Tabs>
             </DialogHeader>
+            <DialogFooter className='flex gap-2 md:justify-end'>
+              <DialogClose asChild>
+                <div>
+                  <Button className='mt-4' variant='outline'>
+                    Cancel
+                  </Button>
+                </div>
+              </DialogClose>
+              <Button
+                className='mt-4 cursor-pointer'
+                onClick={(event) => {
+                  console.log(event)
+                }}
+              >
+                Create
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
