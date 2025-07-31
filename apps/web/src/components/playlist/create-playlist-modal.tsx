@@ -147,7 +147,10 @@ export function CreatePlaylistModal({
                 <Button onClick={handleCancelClick} variant='outline'>
                   Cancel
                 </Button>
-                <Button onClick={() => onSave('ready')}>
+                <Button
+                  disabled={!playlistName.trim()}
+                  onClick={() => onSave('ready')}
+                >
                   {editingPlaylist ? 'Save Changes' : 'Create'}
                 </Button>
               </div>
