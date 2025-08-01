@@ -1,63 +1,51 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-
-type Theme = 'dark' | 'light' | 'system'
+import { createContext, useContext, useEffect } from 'react'
+import { type TernaryDarkMode, useTernaryDarkMode } from 'usehooks-ts'
 
 type ThemeProviderProps = {
   children: React.ReactNode
-  defaultTheme?: Theme
+  defaultTheme?: TernaryDarkMode
   storageKey?: string
 }
 
 type ThemeProviderState = {
-  theme: Theme
-  setTheme: (theme: Theme) => void
+  theme: TernaryDarkMode
+  setTheme: (theme: TernaryDarkMode) => void
+  toggleTheme: () => void
 }
 
-const initialState: ThemeProviderState = {
-  theme: 'system',
-  setTheme: () => null,
-}
-
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
+  undefined,
+)
 
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
-  ...props
+  storageKey = 'theme',
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-  )
+  const {
+    isDarkMode,
+    ternaryDarkMode,
+    setTernaryDarkMode,
+    toggleTernaryDarkMode,
+  } = useTernaryDarkMode({
+    defaultValue: defaultTheme,
+    localStorageKey: storageKey,
+  })
 
   useEffect(() => {
-    const root = window.document.documentElement
+    const root = document.documentElement
+    root.classList.toggle('dark', isDarkMode)
+    root.classList.toggle('light', !isDarkMode)
+  }, [isDarkMode])
 
-    root.classList.remove('light', 'dark')
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
-  }, [theme])
-
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
-    },
+  const value: ThemeProviderState = {
+    theme: ternaryDarkMode,
+    setTheme: setTernaryDarkMode,
+    toggleTheme: toggleTernaryDarkMode,
   }
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider value={value}>
       {children}
     </ThemeProviderContext.Provider>
   )
@@ -66,7 +54,7 @@ export function ThemeProvider({
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
 
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider')
   }
 

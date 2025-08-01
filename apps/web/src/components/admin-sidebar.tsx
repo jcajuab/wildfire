@@ -2,7 +2,7 @@ import { Link, type LinkOptions, useMatches } from '@tanstack/react-router'
 // TODO: Remove Dynamic Icon, it slows down build
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic'
 
-import { ModeToggle } from '#/components/mode-toggle'
+import { ThemeToggleButton } from '#/components/theme-toggle-button'
 import {
   Sidebar,
   SidebarContent,
@@ -71,7 +71,7 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className='items-end'>
-        <ModeToggle />
+        <ThemeToggleButton />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

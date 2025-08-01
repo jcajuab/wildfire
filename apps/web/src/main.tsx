@@ -36,7 +36,7 @@ if (!rootElement.innerHTML) {
 
   root.render(
     <StrictMode>
-      <ThemeProvider defaultTheme='dark' storageKey='wildfire-ui-theme'>
+      <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <RouterProvider router={router} />
         </QueryClientProvider>
