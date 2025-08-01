@@ -1,9 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { InfoIcon, PlusIcon, UserPlusIcon } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
+import {
+  ArrowUpDownIcon,
+  InfoIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  UserPlusIcon,
+} from 'lucide-react'
 
 import { ComboBox } from '#/components/combobox'
+import { RolesTable } from '#/components/roles-table'
 import { Button } from '#/components/ui/button'
-import { DataTable } from '#/components/ui/data-table'
 import {
   Dialog,
   DialogClose,
@@ -13,6 +22,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '#/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Switch } from '#/components/ui/switch'
@@ -22,12 +38,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '#/components/ui/tooltip'
-import { columns, type Role } from '#/types/columnRoles'
+import type { Role } from '#/types/roles'
 
 export const Route = createFileRoute('/admin/roles')({
   component: Component,
 })
 
+// Dummy Data
 const data: Role[] = [
   {
     id: '1',
@@ -51,7 +68,7 @@ const data: Role[] = [
     totalUsers: Math.floor(Math.random() * 100) + 1,
   })),
 ]
-
+// Dumy Data
 const permissions = [
   {
     key: 'viewDisplays',
@@ -133,6 +150,71 @@ const permissions = [
   },
 ]
 
+const columns: ColumnDef<Role>[] = [
+  {
+    accessorKey: 'role',
+    header: ({ column }) => {
+      return (
+        <Button
+          className='w-full justify-start text-left font-medium'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          variant='ghost'
+        >
+          Role
+          <ArrowUpDownIcon />
+        </Button>
+      )
+    },
+  },
+  {
+    accessorKey: 'totalUsers',
+    header: ({ column }) => {
+      return (
+        <Button
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          variant='ghost'
+        >
+          Users
+          <ArrowUpDownIcon />
+        </Button>
+      )
+    },
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const selectedRow = row.original
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className='h-8 w-8 p-0' variant='ghost'>
+              <span className='sr-only'>Open menu</span>
+              <MoreHorizontalIcon className='h-4 w-4' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem
+              onClick={() => alert(JSON.stringify(selectedRow.totalUsers))}
+            >
+              <PencilIcon className='h-4 w-4' />
+              Edit Role
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className='text-red-500'
+              onClick={() => alert(JSON.stringify(selectedRow.role))}
+            >
+              <Trash2Icon className='h-4 w-4' />
+              Remove Role
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+]
+
 function Component() {
   return (
     <>
@@ -195,13 +277,11 @@ function Component() {
                               id={key}
                               onCheckedChange={(val) => {
                                 console.log(`${key} toggled to`, val)
-                                // your toggle logic
                               }}
                             />
                           </td>
                         </tr>
                       ))}
-                      {/* Optional row for bottom corner rounding */}
                       {permissions.length > 0 && (
                         <tr>
                           <td className='rounded-bl-lg'></td>
@@ -245,9 +325,7 @@ function Component() {
           </DialogContent>
         </Dialog>
       </div>
-
-      <DataTable columns={columns} data={data} />
-      {/* <DataTablePagination table={table} /> */}
+      <RolesTable columns={columns} data={data} />
     </>
   )
 }

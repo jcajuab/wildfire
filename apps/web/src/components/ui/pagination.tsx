@@ -19,9 +19,7 @@ interface DataTablePaginationProps<TData> {
   table: Table<TData>
 }
 
-export function DataTablePagination<TData>({
-  table,
-}: DataTablePaginationProps<TData>) {
+export function Pagination<TData>({ table }: DataTablePaginationProps<TData>) {
   const { pageIndex, pageSize } = table.getState().pagination
   const totalRows = table.getRowCount()
   const startingRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1
