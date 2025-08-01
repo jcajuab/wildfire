@@ -1,12 +1,7 @@
-import { Label } from '@radix-ui/react-label'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@radix-ui/react-tooltip'
 import { createFileRoute } from '@tanstack/react-router'
-import { InfoIcon, PlusIcon } from 'lucide-react'
+import { InfoIcon, PlusIcon, UserPlusIcon } from 'lucide-react'
 
+import { ComboBox } from '#/components/combobox'
 import { Button } from '#/components/ui/button'
 import { DataTable } from '#/components/ui/data-table'
 import {
@@ -19,8 +14,14 @@ import {
   DialogTrigger,
 } from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
+import { Label } from '#/components/ui/label'
 import { Switch } from '#/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '#/components/ui/tooltip'
 import { columns, type Role } from '#/types/columnRoles'
 
 export const Route = createFileRoute('/admin/roles')({
@@ -163,24 +164,32 @@ function Component() {
                   className='overflow-hidden rounded-lg border border-gray-300'
                   value='permissions'
                 >
-                  <table className='min-w-full table-auto border-collapse'>
+                  <table className='min-w-full table-fixed border-collapse'>
                     <tbody>
                       {permissions.map(({ key, label, tooltipContent }) => (
                         <tr className='border-b border-gray-200' key={key}>
-                          <div className='flex items-center'>
-                            <td className='text-muted-foreground px-4 py-2'>
+                          {/* Permission label column */}
+                          <td className='w-3/8 px-4 py-2 align-middle'>
+                            <Label
+                              className='text-muted-foreground text-left'
+                              htmlFor={key}
+                            >
                               {label}
-                            </td>
+                            </Label>
+                          </td>
+                          {/* Info icon column */}
+                          <td className='w-[40px] px-2 py-2 text-center align-middle'>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <InfoIcon className='text-muted-foreground inline h-4 w-4' />
+                                <InfoIcon className='text-muted-foreground h-4 w-4 align-middle' />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>{tooltipContent}</p>
                               </TooltipContent>
                             </Tooltip>
-                          </div>
-                          <td className='px-4 py-2 text-right'>
+                          </td>
+                          {/* Switch column */}
+                          <td className='px-4 py-2 text-right align-middle'>
                             <Switch
                               className='scale-125'
                               id={key}
@@ -192,10 +201,11 @@ function Component() {
                           </td>
                         </tr>
                       ))}
-                      {/* Add bottom rounding on the last row */}
+                      {/* Optional row for bottom corner rounding */}
                       {permissions.length > 0 && (
                         <tr>
                           <td className='rounded-bl-lg'></td>
+                          <td></td>
                           <td className='rounded-br-lg'></td>
                         </tr>
                       )}
@@ -204,7 +214,14 @@ function Component() {
                 </TabsContent>
 
                 <TabsContent value='manage-users'>
-                  Manage users here.
+                  <div className='flex gap-2'>
+                    <div className='flex-1'>
+                      <ComboBox />
+                    </div>
+                    <Button variant='outline'>
+                      <UserPlusIcon /> Add User
+                    </Button>
+                  </div>
                 </TabsContent>
               </Tabs>
             </DialogHeader>

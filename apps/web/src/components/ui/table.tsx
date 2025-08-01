@@ -29,7 +29,11 @@ function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
   return (
-    <tbody className={cn('[&_tr:last-child]:border-0', className)} {...props} />
+    <tbody
+      className={cn('[&_tr:last-child]:border-0', className)}
+      data-slot='table-body'
+      {...props}
+    />
   )
 }
 
