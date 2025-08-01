@@ -13,6 +13,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminSchedulesRouteImport } from './routes/admin.schedules'
+import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminPlaylistsRouteImport } from './routes/admin.playlists'
 import { Route as AdminDisplaysRouteImport } from './routes/admin.displays'
 import { Route as AdminContentRouteImport } from './routes/admin.content'
@@ -37,6 +38,11 @@ const AdminSchedulesRoute = AdminSchedulesRouteImport.update({
   path: '/schedules',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRolesRoute = AdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPlaylistsRoute = AdminPlaylistsRouteImport.update({
   id: '/playlists',
   path: '/playlists',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/admin/content': typeof AdminContentRoute
   '/admin/displays': typeof AdminDisplaysRoute
   '/admin/playlists': typeof AdminPlaylistsRoute
+  '/admin/roles': typeof AdminRolesRoute
   '/admin/schedules': typeof AdminSchedulesRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/admin/content': typeof AdminContentRoute
   '/admin/displays': typeof AdminDisplaysRoute
   '/admin/playlists': typeof AdminPlaylistsRoute
+  '/admin/roles': typeof AdminRolesRoute
   '/admin/schedules': typeof AdminSchedulesRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/admin/content': typeof AdminContentRoute
   '/admin/displays': typeof AdminDisplaysRoute
   '/admin/playlists': typeof AdminPlaylistsRoute
+  '/admin/roles': typeof AdminRolesRoute
   '/admin/schedules': typeof AdminSchedulesRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/displays'
     | '/admin/playlists'
+    | '/admin/roles'
     | '/admin/schedules'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/displays'
     | '/admin/playlists'
+    | '/admin/roles'
     | '/admin/schedules'
     | '/admin'
   id:
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/admin/content'
     | '/admin/displays'
     | '/admin/playlists'
+    | '/admin/roles'
     | '/admin/schedules'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -144,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSchedulesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/roles': {
+      id: '/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AdminRolesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/playlists': {
       id: '/admin/playlists'
       path: '/playlists'
@@ -172,6 +191,7 @@ interface AdminRouteChildren {
   AdminContentRoute: typeof AdminContentRoute
   AdminDisplaysRoute: typeof AdminDisplaysRoute
   AdminPlaylistsRoute: typeof AdminPlaylistsRoute
+  AdminRolesRoute: typeof AdminRolesRoute
   AdminSchedulesRoute: typeof AdminSchedulesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -180,6 +200,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContentRoute: AdminContentRoute,
   AdminDisplaysRoute: AdminDisplaysRoute,
   AdminPlaylistsRoute: AdminPlaylistsRoute,
+  AdminRolesRoute: AdminRolesRoute,
   AdminSchedulesRoute: AdminSchedulesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
