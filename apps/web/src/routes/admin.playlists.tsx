@@ -55,14 +55,14 @@ function Component() {
 
   const initialPlaylist: PlaylistItem[] = []
   const initialContent = [
-    { id: 1, name: 'AkiBlog #29', duration: '2:15' },
-    { id: 2, name: 'AkiBlog #28', duration: '1:45' },
-    { id: 3, name: 'AkiBlog #27', duration: '3:20' },
-    { id: 4, name: 'AkiBlog #26', duration: '0:58' },
-    { id: 5, name: 'AkiBlog #25', duration: '2:33' },
-    { id: 101, name: 'AkiBlog #30', duration: '0:45' },
-    { id: 102, name: 'AkiBlog #31', duration: '0:30' },
-    { id: 103, name: 'AkiBlog #32', duration: '1:00' },
+    { id: 1, name: 'Test Content #1', duration: '2:15' },
+    { id: 2, name: 'Test Content #2', duration: '1:45' },
+    { id: 3, name: 'Test Content #3', duration: '3:20' },
+    { id: 4, name: 'Test Content #4', duration: '0:58' },
+    { id: 5, name: 'Test Content #5', duration: '2:33' },
+    { id: 101, name: 'Test Content #6', duration: '0:45' },
+    { id: 102, name: 'Test Content #7', duration: '0:30' },
+    { id: 103, name: 'Test Content #8', duration: '1:00' },
   ]
 
   const [playlistItems, setPlaylistItems] =
