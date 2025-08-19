@@ -1,0 +1,24 @@
+# Environment Files
+.env*
+!.envrc
+
+# Dependencies
+node_modules/
+
+# Build Output
+build/
+out/
+
+# Next.js
+.next/
+next-env.d.ts
+
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+
+# Miscellaneous
+.DS_Store
+Thumbs.db

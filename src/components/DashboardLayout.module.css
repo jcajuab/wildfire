@@ -1,0 +1,16 @@
+.group {
+  padding: var(--mantine-spacing-md);
+
+  &:not(:last-of-type) {
+    border-bottom: 1px solid var(--mantine-color-gray-3);
+
+    @mixin dark {
+      border-bottom-color: var(--mantine-color-dark-4);
+    }
+  }
+}
+
+.icon {
+  width: var(--mantine-font-size-md);
+  height: var(--mantine-font-size-md);
+}
