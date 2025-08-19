@@ -16,7 +16,6 @@
           "level": "on",
           "options": {
             "groups": [
-              { "type": true },
               ":NODE:",
               ":PACKAGE:",
               ":BLANK_LINE:",
