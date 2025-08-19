@@ -1,0 +1,10 @@
+.grid {
+  display: grid;
+  grid-template-rows: repeat(3, auto);
+  grid-template-columns: auto 1fr;
+  column-gap: var(--mantine-spacing-xs);
+
+  & > :first-child {
+    grid-row: span 3;
+  }
+}

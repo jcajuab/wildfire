@@ -1,6 +1,8 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  devIndicators: false, // Temporarily disabling because it's annoying
+  typedRoutes: true,
   eslint: {
     ignoreDuringBuilds: true,
   },

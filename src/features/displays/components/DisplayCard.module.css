@@ -1,0 +1,6 @@
+.grid {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--mantine-spacing-xs);
+  align-items: center;
+}

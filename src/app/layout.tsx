@@ -1,10 +1,8 @@
-import type { Metadata } from "next"
 import { ColorSchemeScript, mantineHtmlProps } from "@mantine/core"
+import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 
-import { MantineThemeProvider } from "#/providers/MantineThemeProvider"
-
-import "@mantine/core/styles.css"
+import { MantineRootProvider } from "#/providers/MantineRootProvider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -13,18 +11,14 @@ export const metadata: Metadata = {
   // TODO: Add description
 }
 
-type LayoutProps = {
-  children: React.ReactNode
-}
-
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" {...mantineHtmlProps}>
       <head>
         <ColorSchemeScript />
       </head>
       <body className={inter.className}>
-        <MantineThemeProvider>{children}</MantineThemeProvider>
+        <MantineRootProvider>{children}</MantineRootProvider>
       </body>
     </html>
   )

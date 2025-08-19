@@ -1,9 +1,12 @@
+import type { Metadata } from "next"
+
 import { DashboardLayout } from "#/components/DashboardLayout"
 
-type LayoutProps = {
-  children: React.ReactNode
+export const metadata: Metadata = {
+  title: "WILDFIRE | Admin",
+  // TODO: Add description
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children }: LayoutProps<"/admin">) {
   return <DashboardLayout>{children}</DashboardLayout>
 }

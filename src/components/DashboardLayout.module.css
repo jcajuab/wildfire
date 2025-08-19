@@ -1,16 +1,25 @@
-.group {
-  padding: var(--mantine-spacing-md);
+.header {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
 
-  &:not(:last-of-type) {
-    border-bottom: 1px solid var(--mantine-color-gray-3);
-
-    @mixin dark {
-      border-bottom-color: var(--mantine-color-dark-4);
-    }
+  @mixin dark {
+    border-bottom-color: var(--mantine-color-dark-4);
   }
 }
 
-.icon {
-  width: var(--mantine-font-size-md);
-  height: var(--mantine-font-size-md);
+.footer {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  grid-template-columns: auto 1fr auto;
+  grid-auto-flow: column;
+  column-gap: var(--mantine-spacing-xs);
+  align-items: center;
+  border-top: 1px solid var(--mantine-color-gray-3);
+
+  & > :first-child {
+    grid-row: span 2;
+  }
+
+  @mixin dark {
+    border-top-color: var(--mantine-color-dark-4);
+  }
 }
