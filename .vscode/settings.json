@@ -1,0 +1,21 @@
+{
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // Biome
+  "biome.suggestInstallingGlobally": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+
+  // Lucide React
+  "typescript.preferences.autoImportFileExcludePatterns": ["lucide-react"],
+
+  // Mantine
+  "cssVariables.lookupFiles": ["node_modules/@mantine/core/styles.css"],
+  "emmet.includeLanguages": {
+    "postcss": "css"
+  }
+}

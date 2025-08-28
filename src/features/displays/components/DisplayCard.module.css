@@ -1,0 +1,26 @@
+.header {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  column-gap: var(--mantine-spacing-xs);
+  align-items: center;
+
+  & > :last-child {
+    justify-self: flex-end;
+  }
+}
+
+.nowPlaying {
+  display: grid;
+  grid-template: repeat(2, auto) / auto 1fr auto;
+  grid-auto-flow: column;
+  column-gap: var(--mantine-spacing-xs);
+  align-items: center;
+
+  & > :first-child {
+    grid-row: span 2;
+  }
+
+  & > :last-child {
+    grid-row: span 2;
+  }
+}
