@@ -12,6 +12,8 @@
 
 ## TDD with Bun Test Runner
 
+**TDD is the default** for this codebase. Every behavior change starts with a failing test, then the smallest implementation to pass, then refactor with tests still green.
+
 ### Why TDD is the default
 
 - **Correctness first**: tests define expected behavior before implementation
@@ -83,6 +85,17 @@ describe.each([
 
 - `bun test` runs the full test suite in a single process
 - `bun test <path>` runs a targeted subset
+
+### Test file discovery
+
+The Bun test runner automatically discovers test files using these patterns:
+
+```
+*.test.{js|jsx|ts|tsx}
+*_test.{js|jsx|ts|tsx}
+*.spec.{js|jsx|ts|tsx}
+*_spec.{js|jsx|ts|tsx}
+```
 
 ### TDD structure aligned with Clean Architecture
 

@@ -5,18 +5,20 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Content Types](#content-types)
-4. [Modules](#modules)
+2. [Development Approach (TDD First)](#development-approach-tdd-first)
+3. [Directory Structure](#directory-structure)
+4. [Architecture](#architecture)
+5. [Content Types](#content-types)
+6. [Modules](#modules)
    - [Auth Module](#1-auth-module)
    - [RBAC Module](#2-rbac-module)
    - [Content Module](#3-content-module)
    - [Playlists Module](#4-playlists-module)
    - [Schedules Module](#5-schedules-module)
    - [Devices Module](#6-devices-module)
-5. [Database Schema](#database-schema)
-6. [API Endpoints Summary](#api-endpoints-summary)
-7. [Display Settings Reference](#display-settings-reference)
+7. [Database Schema](#database-schema)
+8. [API Endpoints Summary](#api-endpoints-summary)
+9. [Display Settings Reference](#display-settings-reference)
 
 ---
 
@@ -56,6 +58,83 @@ Device polls for manifest --> Downloads & caches content --> Plays playlist
 **Playlists are scheduled, NOT individual content items.**
 
 This allows the same content to appear in multiple playlists with different durations and ordering.
+
+---
+
+## Development Approach (TDD First)
+
+Wildfire is **TDD-first**. Every behavior change starts with a failing test, then the smallest implementation to pass, then refactor with tests green.
+
+- Tests use the **Bun test runner** (`bun test`) and follow the Red-Green-Refactor loop.
+- Keep tests aligned to architecture layers (domain -> use cases -> adapters -> infrastructure).
+- Favor fast unit tests; only use integration tests for DB, storage, and HTTP boundaries.
+
+---
+
+## Directory Structure
+
+### Directory Structure (Clean Architecture)
+
+```
+src/
+  index.ts               # Runtime bootstrap (create Hono app, start server)
+  domain/
+    content.ts           # Entity/value object (example)
+    playlist.ts          # Entity/value object (example)
+  application/
+    use-cases/
+      create-playlist.ts # Use case (example)
+    ports/
+      content-repo.ts    # Repository interface (example)
+  interfaces/
+    http/
+      index.ts           # Routes entrypoint / Hono app wiring
+      routes/
+        content.routes.ts # Route handlers (example)
+      validators/
+        content.schema.ts # Zod request validation (example)
+  infrastructure/
+    db/
+      client.ts          # Drizzle + mysql2 client
+      schema.ts          # Drizzle schema
+      repositories/
+        content.mysql.ts # DB repository implementation (example)
+    storage/
+      minio.client.ts    # MinIO adapter (example)
+    auth/
+      jwt.ts             # JWT helpers/middleware (example)
+    docs/
+      scalar.ts          # API docs wiring (example)
+  shared/
+    errors.ts            # Error types/mapping (example)
+    logging.ts           # Logger setup (example)
+tests/
+  domain/
+    content.test.ts      # Domain unit tests (example)
+  application/
+    create-playlist.test.ts # Use case unit tests (example)
+  interfaces/
+    http/
+      content.routes.test.ts # Route contract tests (example)
+  infrastructure/
+    db/
+      content.repo.test.ts # DB integration tests (example)
+```
+
+### Package Ownership (current + future)
+
+- **Hono** (`hono`, `hono-openapi`, `@hono/standard-validator`) -> `interfaces/http/`
+- **Validation** (`zod`) -> boundary validation (controllers/mappers)
+- **Env** (`@t3-oss/env-core`, `dotenvx`) -> `src/env.ts` + scripts
+- **DB** (`drizzle-orm`, `mysql2`, `drizzle-kit`) -> `infrastructure/db/` + `src/schema.ts`
+- **Docs** (`@scalar/hono-api-reference`) -> `infrastructure/docs/`
+- **Tooling** (`@biomejs/biome`, `prettier`, `lefthook`) -> repo tooling only
+
+Future package placement (examples):
+
+- **Storage** (MinIO / S3-compatible client) -> `infrastructure/storage/`
+- **Auth** (JWT helpers) -> `infrastructure/auth/` + `interfaces/http/` middleware
+- **Logging/Tracing** (structured logger) -> `shared/` or `infrastructure/observability/`
 
 ---
 
