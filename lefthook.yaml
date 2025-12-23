@@ -1,0 +1,11 @@
+pre-commit:
+  jobs:
+    - name: biome
+      run: bunx biome check --write --files-ignore-unknown=true --colors=off --no-errors-on-unmatched {staged_files}
+      glob: "*.{js,ts,jsx,tsx,json}"
+      stage_fixed: true
+
+    - name: prettier
+      run: bunx prettier --write --ignore-unknown {staged_files}
+      glob: "*.{md,yaml}"
+      stage_fixed: true
