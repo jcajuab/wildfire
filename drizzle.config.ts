@@ -1,10 +1,9 @@
-/** biome-ignore-all lint/style/noNonNullAssertion: environment variables are guaranteed at runtime */
 import { defineConfig } from "drizzle-kit";
 import { env } from "#/env";
 
 export default defineConfig({
   dialect: "mysql",
-  schema: "./src/schema.ts",
+  schema: "./src/infrastructure/db/schema",
   casing: "snake_case",
   dbCredentials: {
     host: env.MYSQL_HOST,
