@@ -1,8 +1,8 @@
 services:
-  mysql:
+  wildfire-mysql:
     image: mysql:8.0
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_wildfire_data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD
       - MYSQL_DATABASE
@@ -12,5 +12,21 @@ services:
       - "3306:3306"
     restart: unless-stopped
 
+  wildfire-minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_wildfire_data:/data
+    environment:
+      - MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD
+    ports:
+      # TODO: Revert port numbers to 9000:9000 and 9001:9001
+      # Temporarily using these port numbers since I have another instance of MinIO running from BetterWorld (Achille)
+      - "9001:9000"
+      - "9002:9001"
+    restart: unless-stopped
+
 volumes:
-  mysql_data:
+  mysql_wildfire_data:
+  minio_wildfire_data:

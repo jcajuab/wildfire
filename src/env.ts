@@ -13,6 +13,15 @@ export const env = createEnv({
     MYSQL_DATABASE: z.string(),
     MYSQL_USER: z.string(),
     MYSQL_PASSWORD: z.string(),
+
+    // MinIO Configuration
+    MINIO_ROOT_USER: z.string().default("minioadmin"),
+    MINIO_ROOT_PASSWORD: z.string().default("minioadmin"),
+    MINIO_ENDPOINT: z.string().default("localhost"),
+    MINIO_PORT: z.coerce.number().default(9000),
+    MINIO_CONSOLE_PORT: z.coerce.number().default(9001),
+    MINIO_USE_SSL: z.coerce.boolean().default(false),
+    MINIO_BUCKET: z.string().default("content"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
