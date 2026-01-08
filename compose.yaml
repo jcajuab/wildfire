@@ -21,8 +21,10 @@ services:
       - MINIO_ROOT_USER
       - MINIO_ROOT_PASSWORD
     ports:
-      - "9000:9000"
+      # TODO: Revert port numbers to 9000:9000 and 9001:9001
+      # Temporarily using these port numbers since I have another instance of MinIO running from BetterWorld (Achille)
       - "9001:9001"
+      - "9002:9002"
     restart: unless-stopped
 
 volumes:
