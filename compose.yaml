@@ -23,8 +23,8 @@ services:
     ports:
       # TODO: Revert port numbers to 9000:9000 and 9001:9001
       # Temporarily using these port numbers since I have another instance of MinIO running from BetterWorld (Achille)
-      - "9001:9001"
-      - "9002:9002"
+      - "9001:9000"
+      - "9002:9001"
     restart: unless-stopped
 
 volumes:
