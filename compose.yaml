@@ -12,5 +12,19 @@ services:
       - "3306:3306"
     restart: unless-stopped
 
-volumes:
-  mysql_data:
+  minio: # ← NEW SERVICE
+    image: minio/minio:latest # ← Official MinIO image
+    command: server /data --console-address ":9001" # ← Start MinIO server
+    volumes:
+      - minio_data:/data # ← Persist uploaded files
+    environment:
+      - MINIO_ROOT_USER # ← Access key (from .env)
+      - MINIO_ROOT_PASSWORD # ← Secret key (from .env)
+    ports:
+      - "9000:9000" # ← MinIO API
+      - "9001:9001" # ← MinIO Console (web UI)
+    restart: unless-stopped
+
+  volumes:
+    mysql_data:
+    minio_data: # ← NEW VOLUME
