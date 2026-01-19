@@ -43,6 +43,7 @@ const buildApp = () => {
             isActive: true,
           }
         : null,
+    findByIds: async () => [],
     create: async ({ email, name, isActive }) => ({
       id: "user-1",
       email,

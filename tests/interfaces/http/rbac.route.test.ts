@@ -56,6 +56,8 @@ const makeStore = () => {
       list: async () => [...store.users],
       findById: async (id: string) =>
         store.users.find((user) => user.id === id) ?? null,
+      findByIds: async (ids: string[]) =>
+        store.users.filter((user) => ids.includes(user.id)),
       findByEmail: async (email: string) =>
         store.users.find((user) => user.email === email) ?? null,
       create: async (data: {

@@ -23,13 +23,15 @@ export class ListContentUseCase {
       limit: pageSize,
     });
 
-    const creators = await Promise.all(
-      items.map((item) => this.deps.userRepository.findById(item.createdById)),
+    const creatorIds = Array.from(
+      new Set(items.map((item) => item.createdById)),
     );
+    const creators = await this.deps.userRepository.findByIds(creatorIds);
+    const creatorsById = new Map(creators.map((user) => [user.id, user]));
 
     return {
-      items: items.map((item, index) =>
-        toContentView(item, creators[index]?.name ?? null),
+      items: items.map((item) =>
+        toContentView(item, creatorsById.get(item.createdById)?.name ?? null),
       ),
       page,
       pageSize,

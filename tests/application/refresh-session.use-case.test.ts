@@ -35,6 +35,7 @@ describe("RefreshSessionUseCase", () => {
               isActive: true,
             }
           : null,
+      findByIds: async () => [],
       findByEmail: async () => null,
       create: async ({ email, name, isActive }) => ({
         id: "user-1",

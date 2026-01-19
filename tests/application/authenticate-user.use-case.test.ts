@@ -32,6 +32,7 @@ const makeDeps = () => {
   const userRepository: UserRepository = {
     list: async () => [],
     findById: async () => null,
+    findByIds: async () => [],
     findByEmail: async (email: string) =>
       email === "test1@example.com"
         ? { id: "user-1", email, name: "Test One", isActive: true }

@@ -23,6 +23,7 @@ export interface PermissionRecord {
 export interface UserRepository {
   list(): Promise<UserRecord[]>;
   findById(id: string): Promise<UserRecord | null>;
+  findByIds(ids: string[]): Promise<UserRecord[]>;
   findByEmail(email: string): Promise<UserRecord | null>;
   create(input: {
     email: string;

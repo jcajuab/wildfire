@@ -56,6 +56,13 @@ const makeApp = async (permissions: string[]) => {
       name: "User",
       isActive: true,
     }),
+    findByIds: async (ids: string[]) =>
+      ids.map((id) => ({
+        id,
+        email: "user@example.com",
+        name: "User",
+        isActive: true,
+      })),
     findByEmail: async () => null,
     create: async () => {
       throw new Error("not needed in test");

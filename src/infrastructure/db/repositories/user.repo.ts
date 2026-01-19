@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { type UserRecord, type UserRepository } from "#/application/ports/rbac";
 import { db } from "#/infrastructure/db/client";
 import { users } from "#/infrastructure/db/schema/rbac.sql";
@@ -15,6 +15,11 @@ export class UserDbRepository implements UserRepository {
       .where(eq(users.id, id))
       .limit(1);
     return result[0] ?? null;
+  }
+
+  async findByIds(ids: string[]): Promise<UserRecord[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(users).where(inArray(users.id, ids));
   }
 
   async findByEmail(email: string): Promise<UserRecord | null> {

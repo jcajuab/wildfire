@@ -63,6 +63,15 @@ const makeUserRepository = (users: Array<{ id: string; name: string }>) =>
         isActive: true,
       };
     },
+    findByIds: async (ids: string[]) =>
+      users
+        .filter((user) => ids.includes(user.id))
+        .map((user) => ({
+          id: user.id,
+          email: `${user.id}@example.com`,
+          name: user.name,
+          isActive: true,
+        })),
     findByEmail: async () => null,
     create: async () => {
       throw new Error("not needed in test");
