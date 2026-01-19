@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import path from "node:path";
 import { Hono } from "hono";
+import { sign } from "hono/jwt";
 import { type UserRepository } from "#/application/ports/rbac";
 import { BcryptPasswordVerifier } from "#/infrastructure/auth/bcrypt-password.verifier";
 import { HtshadowCredentialsRepository } from "#/infrastructure/auth/htshadow.repo";
@@ -158,6 +159,17 @@ describe("Auth routes", () => {
       ).toISOString(),
       user: { id: "user-1", email: "test1@example.com", name: "Test One" },
     });
+  });
+
+  test("GET /auth/me returns 401 for invalid token payload", async () => {
+    const { app } = buildApp();
+    const token = await sign({ sub: 123 }, "test-secret");
+
+    const response = await app.request("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(401);
   });
 
   test("GET /auth/me returns 401 without token", async () => {

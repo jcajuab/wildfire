@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildContentFileKey,
+  parseContentType,
   resolveContentType,
   resolveFileExtension,
 } from "#/domain/content/content";
@@ -20,6 +21,13 @@ describe("Content domain", () => {
     expect(resolveFileExtension("image/jpeg")).toBe("jpg");
     expect(resolveFileExtension("video/mp4")).toBe("mp4");
     expect(resolveFileExtension("application/pdf")).toBe("pdf");
+  });
+
+  test("parses content type values", () => {
+    expect(parseContentType("IMAGE")).toBe("IMAGE");
+    expect(parseContentType("VIDEO")).toBe("VIDEO");
+    expect(parseContentType("PDF")).toBe("PDF");
+    expect(parseContentType("OTHER")).toBeNull();
   });
 
   test("builds content file key by type", () => {

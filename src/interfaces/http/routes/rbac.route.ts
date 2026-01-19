@@ -25,6 +25,7 @@ import {
   UpdateRoleUseCase,
   UpdateUserUseCase,
 } from "#/application/use-cases/rbac";
+import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
 import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
 import { errorResponseSchema, notFound } from "#/interfaces/http/responses";
 import {
@@ -50,7 +51,7 @@ export interface RbacRouterDeps {
 }
 
 export const createRbacRouter = (deps: RbacRouterDeps) => {
-  const router = new Hono();
+  const router = new Hono<{ Variables: JwtUserVariables }>();
   const { jwtMiddleware, requirePermission } = createPermissionMiddleware({
     jwtSecret: deps.jwtSecret,
     authorizationRepository: deps.repositories.authorizationRepository,

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
+import { sign } from "hono/jwt";
 import { type ContentRecord } from "#/application/ports/content";
 import { Permission } from "#/domain/rbac/permission";
 import { JwtTokenIssuer } from "#/infrastructure/auth/jwt";
@@ -180,6 +181,17 @@ describe("Content routes", () => {
     const { app } = await makeApp(["content:read"]);
 
     const response = await app.request("/content");
+    expect(response.status).toBe(401);
+  });
+
+  test("returns 401 for invalid token payload", async () => {
+    const { app } = await makeApp(["content:read"]);
+    const token = await sign({ sub: 123 }, "test-secret");
+
+    const response = await app.request("/content", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
     expect(response.status).toBe(401);
   });
 

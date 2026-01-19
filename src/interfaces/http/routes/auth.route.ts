@@ -14,6 +14,10 @@ import {
   RefreshSessionUseCase,
 } from "#/application/use-cases/auth";
 import { createJwtMiddleware } from "#/infrastructure/auth/jwt";
+import {
+  type JwtUserVariables,
+  requireJwtUser,
+} from "#/interfaces/http/middleware/jwt-user";
 import { errorResponseSchema, unauthorized } from "#/interfaces/http/responses";
 import { authLoginSchema } from "#/interfaces/http/validators/auth.schema";
 import { validateJson } from "#/interfaces/http/validators/standard-validator";
@@ -41,7 +45,7 @@ const authResponseSchema = z.object({
 });
 
 export const createAuthRouter = (deps: AuthRouterDeps) => {
-  const router = new Hono();
+  const router = new Hono<{ Variables: JwtUserVariables }>();
 
   const authenticateUser = new AuthenticateUserUseCase({
     credentialsRepository: deps.credentialsRepository,
@@ -113,6 +117,7 @@ export const createAuthRouter = (deps: AuthRouterDeps) => {
   router.get(
     "/me",
     jwtMiddleware,
+    requireJwtUser,
     describeRoute({
       description: "Get current user and refresh JWT",
       responses: {
@@ -135,15 +140,10 @@ export const createAuthRouter = (deps: AuthRouterDeps) => {
       },
     }),
     async (c) => {
-      const jwtPayload = c.get("jwtPayload") as { sub?: string } | undefined;
-      const userId = jwtPayload?.sub;
-
-      if (!userId) {
-        return unauthorized(c, "Invalid token");
-      }
-
       try {
-        const result = await refreshSession.execute({ userId });
+        const result = await refreshSession.execute({
+          userId: c.get("userId"),
+        });
         return c.json(result);
       } catch (error) {
         if (error instanceof InvalidCredentialsError) {
@@ -158,6 +158,7 @@ export const createAuthRouter = (deps: AuthRouterDeps) => {
   router.post(
     "/logout",
     jwtMiddleware,
+    requireJwtUser,
     describeRoute({
       description: "Logout current user (no-op)",
       responses: {

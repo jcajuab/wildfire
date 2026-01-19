@@ -3,24 +3,34 @@ import {
   type ContentRecord,
   type ContentRepository,
 } from "#/application/ports/content";
+import { parseContentType } from "#/domain/content/content";
 import { db } from "#/infrastructure/db/client";
 import { content } from "#/infrastructure/db/schema/content.sql";
 
-const toRecord = (row: typeof content.$inferSelect): ContentRecord => ({
-  id: row.id,
-  title: row.title,
-  type: row.type as ContentRecord["type"],
-  fileKey: row.fileKey,
-  checksum: row.checksum,
-  mimeType: row.mimeType,
-  fileSize: row.fileSize,
-  width: row.width ?? null,
-  height: row.height ?? null,
-  duration: row.duration ?? null,
-  createdById: row.createdById,
-  createdAt:
-    row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
-});
+const toRecord = (row: typeof content.$inferSelect): ContentRecord => {
+  const parsedType = parseContentType(row.type);
+  if (!parsedType) {
+    throw new Error(`Invalid content type: ${row.type}`);
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    type: parsedType,
+    fileKey: row.fileKey,
+    checksum: row.checksum,
+    mimeType: row.mimeType,
+    fileSize: row.fileSize,
+    width: row.width ?? null,
+    height: row.height ?? null,
+    duration: row.duration ?? null,
+    createdById: row.createdById,
+    createdAt:
+      row.createdAt instanceof Date
+        ? row.createdAt.toISOString()
+        : row.createdAt,
+  };
+};
 
 export class ContentDbRepository implements ContentRepository {
   async create(

@@ -2,7 +2,12 @@ import { type MiddlewareHandler } from "hono";
 import { type AuthorizationRepository } from "#/application/ports/rbac";
 import { CheckPermissionUseCase } from "#/application/use-cases/rbac";
 import { createJwtMiddleware } from "#/infrastructure/auth/jwt";
+import {
+  type JwtUserVariables,
+  requireJwtUser,
+} from "#/interfaces/http/middleware/jwt-user";
 import { forbidden, unauthorized } from "#/interfaces/http/responses";
+import { jwtPayloadSchema } from "#/interfaces/http/validators/jwt.schema";
 
 export const createPermissionMiddleware = (deps: {
   jwtSecret: string;
@@ -13,15 +18,22 @@ export const createPermissionMiddleware = (deps: {
     authorizationRepository: deps.authorizationRepository,
   });
 
-  const requirePermission = (permission: string): MiddlewareHandler => {
+  const requirePermission = (
+    permission: string,
+  ): MiddlewareHandler<{ Variables: JwtUserVariables }> => {
     return async (c, next) => {
-      const jwtPayload = c.get("jwtPayload") as { sub?: string } | undefined;
-      if (!jwtPayload?.sub) {
+      const parsed = jwtPayloadSchema.safeParse(c.get("jwtPayload"));
+      if (!parsed.success) {
         return unauthorized(c, "Invalid token");
       }
 
+      c.set("userId", parsed.data.sub);
+      if (parsed.data.email) {
+        c.set("userEmail", parsed.data.email);
+      }
+
       const allowed = await checkPermission.execute({
-        userId: jwtPayload.sub,
+        userId: parsed.data.sub,
         required: permission,
       });
 
@@ -33,5 +45,5 @@ export const createPermissionMiddleware = (deps: {
     };
   };
 
-  return { jwtMiddleware, requirePermission };
+  return { jwtMiddleware, requirePermission, requireJwtUser };
 };

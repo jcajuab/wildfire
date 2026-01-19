@@ -1,12 +1,14 @@
 import { type MiddlewareHandler } from "hono";
-import { requestId } from "hono/request-id";
+import { type RequestIdVariables, requestId } from "hono/request-id";
 
 export { requestId };
 
-export const requestLogger: MiddlewareHandler = async (c, next) => {
+export const requestLogger: MiddlewareHandler<{
+  Variables: RequestIdVariables;
+}> = async (c, next) => {
   const start = Date.now();
   await next();
-  const requestId = c.get("requestId") as string | undefined;
+  const requestId = c.get("requestId");
   const durationMs = Date.now() - start;
   const status = c.res.status;
   const method = c.req.method;

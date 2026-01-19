@@ -31,6 +31,13 @@ export const resolveContentType = (mimeType: string): ContentType | null => {
   return null;
 };
 
+export const parseContentType = (value: string): ContentType | null => {
+  if (value === "IMAGE" || value === "VIDEO" || value === "PDF") {
+    return value;
+  }
+  return null;
+};
+
 export const resolveFileExtension = (mimeType: string): string | null =>
   mimeTypeToExtension.get(mimeType) ?? null;
 

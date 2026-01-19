@@ -18,12 +18,12 @@ import {
   NotFoundError,
   UploadContentUseCase,
 } from "#/application/use-cases/content";
+import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
 import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
 import {
   badRequest,
   errorResponseSchema,
   notFound,
-  unauthorized,
 } from "#/interfaces/http/responses";
 import {
   contentIdParamSchema,
@@ -52,7 +52,7 @@ export interface ContentRouterDeps {
 }
 
 export const createContentRouter = (deps: ContentRouterDeps) => {
-  const router = new Hono();
+  const router = new Hono<{ Variables: JwtUserVariables }>();
   const { jwtMiddleware, requirePermission } = createPermissionMiddleware({
     jwtSecret: deps.jwtSecret,
     authorizationRepository: deps.repositories.authorizationRepository,
@@ -133,18 +133,11 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
     }),
     async (c) => {
       const payload = c.req.valid("form");
-      const jwtPayload = c.get("jwtPayload") as { sub?: string } | undefined;
-      const userId = jwtPayload?.sub;
-
-      if (!userId) {
-        return unauthorized(c, "Invalid token");
-      }
-
       try {
         const result = await uploadContent.execute({
           title: payload.title,
           file: payload.file,
-          createdById: userId,
+          createdById: c.get("userId"),
         });
         return c.json(result, 201);
       } catch (error) {
@@ -171,6 +164,14 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
           content: {
             "application/json": {
               schema: resolver(contentListResponseSchema),
+            },
+          },
+        },
+        400: {
+          description: "Invalid request",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
             },
           },
         },
@@ -214,6 +215,14 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
             },
           },
         },
+        400: {
+          description: "Invalid request",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
         404: {
           description: "Not found",
           content: {
@@ -246,6 +255,14 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
       description: "Delete content",
       responses: {
         204: { description: "Deleted" },
+        400: {
+          description: "Invalid request",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
         404: {
           description: "Not found",
           content: {
@@ -282,6 +299,14 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
           content: {
             "application/json": {
               schema: resolver(downloadUrlResponseSchema),
+            },
+          },
+        },
+        400: {
+          description: "Invalid request",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
             },
           },
         },
