@@ -11,6 +11,8 @@
     "build": "tsc --noEmit && bun build --target bun src/index.ts --outdir build"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.971.0",
+    "@aws-sdk/s3-request-presigner": "^3.971.0",
     "@hono/standard-validator": "^0.2.2",
     "@scalar/hono-api-reference": "^0.9.30",
     "@t3-oss/env-core": "^0.13.10",

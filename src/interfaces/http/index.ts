@@ -7,18 +7,20 @@ import { BcryptPasswordVerifier } from "#/infrastructure/auth/bcrypt-password.ve
 import { HtshadowCredentialsRepository } from "#/infrastructure/auth/htshadow.repo";
 import { JwtTokenIssuer } from "#/infrastructure/auth/jwt";
 import { AuthorizationDbRepository } from "#/infrastructure/db/repositories/authorization.repo";
+import { ContentDbRepository } from "#/infrastructure/db/repositories/content.repo";
 import { PermissionDbRepository } from "#/infrastructure/db/repositories/permission.repo";
 import { RoleDbRepository } from "#/infrastructure/db/repositories/role.repo";
 import { RolePermissionDbRepository } from "#/infrastructure/db/repositories/role-permission.repo";
 import { UserDbRepository } from "#/infrastructure/db/repositories/user.repo";
 import { UserRoleDbRepository } from "#/infrastructure/db/repositories/user-role.repo";
+import { S3ContentStorage } from "#/infrastructure/storage/s3-content.storage";
 import { SystemClock } from "#/infrastructure/time/system.clock";
 import {
   requestId,
   requestLogger,
 } from "#/interfaces/http/middleware/observability";
 import { createAuthRouter } from "#/interfaces/http/routes/auth.route";
-import { contentRouter } from "#/interfaces/http/routes/content.route";
+import { createContentRouter } from "#/interfaces/http/routes/content.route";
 import { devicesRouter } from "#/interfaces/http/routes/devices.route";
 import { healthRouter } from "#/interfaces/http/routes/health.route";
 import { playlistsRouter } from "#/interfaces/http/routes/playlists.route";
@@ -50,10 +52,33 @@ const authRouter = createAuthRouter({
 
 app.route("/", healthRouter);
 app.route("/auth", authRouter);
-app.route("/content", contentRouter);
 app.route("/playlists", playlistsRouter);
 app.route("/schedules", schedulesRouter);
 app.route("/devices", devicesRouter);
+
+const contentStorage = new S3ContentStorage({
+  bucket: env.MINIO_BUCKET,
+  region: env.MINIO_REGION,
+  endpoint: `${env.MINIO_USE_SSL ? "https" : "http"}://${
+    env.MINIO_ENDPOINT
+  }:${env.MINIO_PORT}`,
+  accessKeyId: env.MINIO_ROOT_USER,
+  secretAccessKey: env.MINIO_ROOT_PASSWORD,
+});
+
+const contentRouter = createContentRouter({
+  jwtSecret: env.JWT_SECRET,
+  maxUploadBytes: env.CONTENT_MAX_UPLOAD_BYTES,
+  downloadUrlExpiresInSeconds: 60 * 60,
+  repositories: {
+    contentRepository: new ContentDbRepository(),
+    userRepository: new UserDbRepository(),
+    authorizationRepository: new AuthorizationDbRepository(),
+  },
+  storage: contentStorage,
+});
+
+app.route("/content", contentRouter);
 
 const rbacRouter = createRbacRouter({
   jwtSecret: env.JWT_SECRET,

@@ -176,7 +176,7 @@ Future package placement (examples):
 ### Upload Requirements
 
 - **No server-side processing** - users must upload optimized files
-- **Max file size**: Configure based on storage capacity (recommend 100MB)
+- **Max file size**: Configure based on storage capacity (recommend 100MB). Use `CONTENT_MAX_UPLOAD_BYTES` (default `104857600`).
 - **Video format**: H.264 codec, yuv420p pixel format for Pi 4 hardware decoding
 
 ---

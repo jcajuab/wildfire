@@ -1,0 +1,323 @@
+import { describe, expect, test } from "bun:test";
+import {
+  type ContentRecord,
+  type ContentRepository,
+  type ContentStorage,
+} from "#/application/ports/content";
+import { type UserRepository } from "#/application/ports/rbac";
+import {
+  DeleteContentUseCase,
+  GetContentDownloadUrlUseCase,
+  GetContentUseCase,
+  InvalidContentTypeError,
+  ListContentUseCase,
+  NotFoundError,
+  UploadContentUseCase,
+} from "#/application/use-cases/content";
+import { sha256Hex } from "#/domain/content/checksum";
+
+const makeContentRepository = () => {
+  const records: ContentRecord[] = [];
+
+  const repository: ContentRepository = {
+    create: async (input) => {
+      const record: ContentRecord = {
+        ...input,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      };
+      records.push(record);
+      return record;
+    },
+    findById: async (id) => records.find((item) => item.id === id) ?? null,
+    list: async ({ offset, limit }) => ({
+      items: records.slice(offset, offset + limit),
+      total: records.length,
+    }),
+    delete: async (id) => {
+      const index = records.findIndex((item) => item.id === id);
+      if (index === -1) return false;
+      records.splice(index, 1);
+      return true;
+    },
+  };
+
+  return { records, repository };
+};
+
+const makeUserRepository = (users: Array<{ id: string; name: string }>) =>
+  ({
+    list: async () =>
+      users.map((user) => ({
+        id: user.id,
+        email: `${user.id}@example.com`,
+        name: user.name,
+        isActive: true,
+      })),
+    findById: async (id: string) => {
+      const user = users.find((item) => item.id === id);
+      if (!user) return null;
+      return {
+        id: user.id,
+        email: `${user.id}@example.com`,
+        name: user.name,
+        isActive: true,
+      };
+    },
+    findByEmail: async () => null,
+    create: async () => {
+      throw new Error("not needed in test");
+    },
+    update: async () => null,
+    delete: async () => false,
+  }) satisfies UserRepository;
+
+const makeStorage = () => {
+  type UploadInput = Parameters<ContentStorage["upload"]>[0];
+  let lastUpload: UploadInput | null = null;
+  let lastDeletedKey: string | null = null;
+
+  const storage: ContentStorage = {
+    upload: async (input) => {
+      lastUpload = input;
+    },
+    delete: async (key) => {
+      lastDeletedKey = key;
+    },
+    getPresignedDownloadUrl: async ({ key }) => `https://example.com/${key}`,
+  };
+
+  return {
+    storage,
+    get lastUpload() {
+      return lastUpload;
+    },
+    get lastDeletedKey() {
+      return lastDeletedKey;
+    },
+  };
+};
+
+describe("Content use cases", () => {
+  test("uploads content and returns content view", async () => {
+    const { repository } = makeContentRepository();
+    const storage = makeStorage();
+    const userRepository = makeUserRepository([{ id: "user-1", name: "Ada" }]);
+    const useCase = new UploadContentUseCase({
+      contentRepository: repository,
+      contentStorage: storage.storage,
+      userRepository,
+    });
+
+    const file = new File([new TextEncoder().encode("hello")], "photo.png", {
+      type: "image/png",
+    });
+    const checksum = await sha256Hex(await file.arrayBuffer());
+
+    const result = await useCase.execute({
+      title: "Welcome",
+      file,
+      createdById: "user-1",
+    });
+
+    expect(result.title).toBe("Welcome");
+    expect(result.type).toBe("IMAGE");
+    expect(result.checksum).toBe(checksum);
+    expect(result.createdBy).toEqual({ id: "user-1", name: "Ada" });
+    expect(storage.lastUpload?.contentType).toBe("image/png");
+    expect(storage.lastUpload?.key).toBe(`content/images/${result.id}.png`);
+  });
+
+  test("rejects unsupported file types", async () => {
+    const { repository } = makeContentRepository();
+    const storage = makeStorage();
+    const userRepository = makeUserRepository([{ id: "user-1", name: "Ada" }]);
+    const useCase = new UploadContentUseCase({
+      contentRepository: repository,
+      contentStorage: storage.storage,
+      userRepository,
+    });
+
+    const file = new File([new TextEncoder().encode("data")], "data.zip", {
+      type: "application/zip",
+    });
+
+    await expect(
+      useCase.execute({ title: "Invalid", file, createdById: "user-1" }),
+    ).rejects.toBeInstanceOf(InvalidContentTypeError);
+  });
+
+  test("throws when creator does not exist", async () => {
+    const { repository } = makeContentRepository();
+    const storage = makeStorage();
+    const userRepository = makeUserRepository([]);
+    const useCase = new UploadContentUseCase({
+      contentRepository: repository,
+      contentStorage: storage.storage,
+      userRepository,
+    });
+
+    const file = new File([new TextEncoder().encode("hello")], "photo.png", {
+      type: "image/png",
+    });
+
+    await expect(
+      useCase.execute({ title: "Missing user", file, createdById: "user-1" }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  test("lists content with pagination and creator names", async () => {
+    const { repository, records } = makeContentRepository();
+    const userRepository = makeUserRepository([
+      { id: "user-1", name: "Ada" },
+      { id: "user-2", name: "Grace" },
+    ]);
+    records.push(
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        title: "One",
+        type: "IMAGE",
+        fileKey: "content/images/11111111-1111-4111-8111-111111111111.png",
+        checksum: "abc",
+        mimeType: "image/png",
+        fileSize: 10,
+        width: null,
+        height: null,
+        duration: null,
+        createdById: "user-1",
+        createdAt: "2025-01-01T00:00:00.000Z",
+      },
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        title: "Two",
+        type: "PDF",
+        fileKey: "content/documents/22222222-2222-4222-8222-222222222222.pdf",
+        checksum: "def",
+        mimeType: "application/pdf",
+        fileSize: 20,
+        width: null,
+        height: null,
+        duration: null,
+        createdById: "user-2",
+        createdAt: "2025-01-02T00:00:00.000Z",
+      },
+    );
+
+    const useCase = new ListContentUseCase({
+      contentRepository: repository,
+      userRepository,
+    });
+
+    const result = await useCase.execute({ page: 1, pageSize: 1 });
+
+    expect(result.total).toBe(2);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.createdBy).toEqual({
+      id: "user-1",
+      name: "Ada",
+    });
+  });
+
+  test("gets content by id", async () => {
+    const { repository, records } = makeContentRepository();
+    const userRepository = makeUserRepository([{ id: "user-1", name: "Ada" }]);
+    const useCase = new GetContentUseCase({
+      contentRepository: repository,
+      userRepository,
+    });
+
+    records.push({
+      id: "11111111-1111-4111-8111-111111111111",
+      title: "Poster",
+      type: "IMAGE",
+      fileKey: "content/images/11111111-1111-4111-8111-111111111111.png",
+      checksum: "abc",
+      mimeType: "image/png",
+      fileSize: 10,
+      width: null,
+      height: null,
+      duration: null,
+      createdById: "user-1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+    });
+
+    const result = await useCase.execute({
+      id: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(result.id).toBe("11111111-1111-4111-8111-111111111111");
+    expect(result.createdBy.name).toBe("Ada");
+  });
+
+  test("throws when content is missing", async () => {
+    const { repository } = makeContentRepository();
+    const userRepository = makeUserRepository([{ id: "user-1", name: "Ada" }]);
+    const useCase = new GetContentUseCase({
+      contentRepository: repository,
+      userRepository,
+    });
+
+    await expect(useCase.execute({ id: "missing" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  test("deletes content and storage object", async () => {
+    const { repository, records } = makeContentRepository();
+    const storage = makeStorage();
+    const useCase = new DeleteContentUseCase({
+      contentRepository: repository,
+      contentStorage: storage.storage,
+    });
+
+    records.push({
+      id: "11111111-1111-4111-8111-111111111111",
+      title: "Poster",
+      type: "IMAGE",
+      fileKey: "content/images/11111111-1111-4111-8111-111111111111.png",
+      checksum: "abc",
+      mimeType: "image/png",
+      fileSize: 10,
+      width: null,
+      height: null,
+      duration: null,
+      createdById: "user-1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+    });
+
+    await useCase.execute({ id: "11111111-1111-4111-8111-111111111111" });
+    expect(storage.lastDeletedKey).toBe(
+      "content/images/11111111-1111-4111-8111-111111111111.png",
+    );
+  });
+
+  test("returns presigned download url", async () => {
+    const { repository, records } = makeContentRepository();
+    const storage = makeStorage();
+    const useCase = new GetContentDownloadUrlUseCase({
+      contentRepository: repository,
+      contentStorage: storage.storage,
+      expiresInSeconds: 3600,
+    });
+
+    records.push({
+      id: "11111111-1111-4111-8111-111111111111",
+      title: "Poster",
+      type: "IMAGE",
+      fileKey: "content/images/11111111-1111-4111-8111-111111111111.png",
+      checksum: "abc",
+      mimeType: "image/png",
+      fileSize: 10,
+      width: null,
+      height: null,
+      duration: null,
+      createdById: "user-1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+    });
+
+    const result = await useCase.execute({
+      id: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(result.downloadUrl).toBe(
+      "https://example.com/content/images/11111111-1111-4111-8111-111111111111.png",
+    );
+  });
+});

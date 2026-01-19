@@ -22,6 +22,8 @@ export const env = createEnv({
     MINIO_CONSOLE_PORT: z.coerce.number().default(9001),
     MINIO_USE_SSL: z.coerce.boolean().default(false),
     MINIO_BUCKET: z.string().default("content"),
+    MINIO_REGION: z.string().default("us-east-1"),
+    CONTENT_MAX_UPLOAD_BYTES: z.coerce.number().default(100 * 1024 * 1024),
 
     // Auth Configuration
     HTSHADOW_PATH: z.string().default("/etc/htshadow"),

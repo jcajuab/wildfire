@@ -1,4 +1,4 @@
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
 import {
   type AuthorizationRepository,
@@ -9,7 +9,6 @@ import {
   type UserRoleRepository,
 } from "#/application/ports/rbac";
 import {
-  CheckPermissionUseCase,
   CreateRoleUseCase,
   CreateUserUseCase,
   DeleteRoleUseCase,
@@ -26,13 +25,8 @@ import {
   UpdateRoleUseCase,
   UpdateUserUseCase,
 } from "#/application/use-cases/rbac";
-import { createJwtMiddleware } from "#/infrastructure/auth/jwt";
-import {
-  errorResponseSchema,
-  forbidden,
-  notFound,
-  unauthorized,
-} from "#/interfaces/http/responses";
+import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
+import { errorResponseSchema, notFound } from "#/interfaces/http/responses";
 import {
   createRoleSchema,
   createUserSchema,
@@ -57,9 +51,8 @@ export interface RbacRouterDeps {
 
 export const createRbacRouter = (deps: RbacRouterDeps) => {
   const router = new Hono();
-  const jwtMiddleware = createJwtMiddleware(deps.jwtSecret);
-
-  const checkPermission = new CheckPermissionUseCase({
+  const { jwtMiddleware, requirePermission } = createPermissionMiddleware({
+    jwtSecret: deps.jwtSecret,
     authorizationRepository: deps.repositories.authorizationRepository,
   });
 
@@ -113,26 +106,6 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
     roleRepository: deps.repositories.roleRepository,
     userRoleRepository: deps.repositories.userRoleRepository,
   });
-
-  const requirePermission = (permission: string): MiddlewareHandler => {
-    return async (c, next) => {
-      const jwtPayload = c.get("jwtPayload") as { sub?: string } | undefined;
-      if (!jwtPayload?.sub) {
-        return unauthorized(c, "Invalid token");
-      }
-
-      const allowed = await checkPermission.execute({
-        userId: jwtPayload.sub,
-        required: permission,
-      });
-
-      if (!allowed) {
-        return forbidden(c, "Forbidden");
-      }
-
-      await next();
-    };
-  };
 
   router.use("/*", jwtMiddleware);
 
