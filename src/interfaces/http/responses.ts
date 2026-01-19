@@ -42,3 +42,25 @@ export const unauthorized = (c: Context, message: string) =>
     },
     401,
   );
+
+export const forbidden = (c: Context, message: string) =>
+  c.json<ErrorResponse>(
+    {
+      error: {
+        code: "FORBIDDEN",
+        message,
+      },
+    },
+    403,
+  );
+
+export const notFound = (c: Context, message: string) =>
+  c.json<ErrorResponse>(
+    {
+      error: {
+        code: "NOT_FOUND",
+        message,
+      },
+    },
+    404,
+  );

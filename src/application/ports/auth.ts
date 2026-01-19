@@ -12,6 +12,7 @@ export interface TokenIssuer {
     issuedAt: number;
     expiresAt: number;
     issuer?: string;
+    email?: string;
   }): Promise<string>;
 }
 

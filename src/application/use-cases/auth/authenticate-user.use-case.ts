@@ -4,24 +4,26 @@ import {
   type PasswordVerifier,
   type TokenIssuer,
 } from "#/application/ports/auth";
+import { type UserRepository } from "#/application/ports/rbac";
 import { InvalidCredentialsError } from "#/application/use-cases/auth/errors";
 
 export interface AuthenticateUserInput {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface AuthResult {
+  type: "bearer";
   token: string;
-  tokenType: "Bearer";
-  expiresIn: number;
-  user: { username: string };
+  expiresAt: string;
+  user: { id: string; email: string; name: string };
 }
 
 interface AuthenticateUserDeps {
   credentialsRepository: CredentialsRepository;
   passwordVerifier: PasswordVerifier;
   tokenIssuer: TokenIssuer;
+  userRepository: UserRepository;
   clock: Clock;
   tokenTtlSeconds: number;
   issuer?: string;
@@ -32,7 +34,7 @@ export class AuthenticateUserUseCase {
 
   async execute(input: AuthenticateUserInput): Promise<AuthResult> {
     const passwordHash = await this.deps.credentialsRepository.findPasswordHash(
-      input.username,
+      input.email,
     );
 
     if (!passwordHash) {
@@ -48,20 +50,26 @@ export class AuthenticateUserUseCase {
       throw new InvalidCredentialsError();
     }
 
+    const user = await this.deps.userRepository.findByEmail(input.email);
+    if (!user || !user.isActive) {
+      throw new InvalidCredentialsError();
+    }
+
     const issuedAt = this.deps.clock.nowSeconds();
     const expiresAt = issuedAt + this.deps.tokenTtlSeconds;
     const token = await this.deps.tokenIssuer.issueToken({
-      subject: input.username,
+      subject: user.id,
       issuedAt,
       expiresAt,
       issuer: this.deps.issuer,
+      email: user.email,
     });
 
     return {
+      type: "bearer",
       token,
-      tokenType: "Bearer",
-      expiresIn: this.deps.tokenTtlSeconds,
-      user: { username: input.username },
+      expiresAt: new Date(expiresAt * 1000).toISOString(),
+      user: { id: user.id, email: user.email, name: user.name },
     };
   }
 }

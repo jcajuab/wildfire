@@ -14,9 +14,11 @@ export class JwtTokenIssuer implements TokenIssuer {
     issuedAt: number;
     expiresAt: number;
     issuer?: string;
+    email?: string;
   }): Promise<string> {
     const payload = {
       sub: input.subject,
+      email: input.email,
       iat: input.issuedAt,
       exp: input.expiresAt,
       iss: input.issuer ?? this.deps.issuer,

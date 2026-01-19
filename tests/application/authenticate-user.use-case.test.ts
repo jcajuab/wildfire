@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { type UserRepository } from "#/application/ports/rbac";
 import {
   AuthenticateUserUseCase,
   InvalidCredentialsError,
@@ -13,6 +14,38 @@ const makeDeps = () => {
     expiresAt?: number;
   } = {};
 
+  const issueToken = async ({
+    subject,
+    issuedAt,
+    expiresAt,
+  }: {
+    subject: string;
+    issuedAt: number;
+    expiresAt: number;
+  }) => {
+    issued.subject = subject;
+    issued.issuedAt = issuedAt;
+    issued.expiresAt = expiresAt;
+    return `${subject}:${issuedAt}:${expiresAt}`;
+  };
+
+  const userRepository: UserRepository = {
+    list: async () => [],
+    findById: async () => null,
+    findByEmail: async (email: string) =>
+      email === "test1@example.com"
+        ? { id: "user-1", email, name: "Test One", isActive: true }
+        : null,
+    create: async ({ email, name, isActive }) => ({
+      id: "user-1",
+      email,
+      name,
+      isActive: isActive ?? true,
+    }),
+    update: async () => null,
+    delete: async () => false,
+  };
+
   return {
     issued,
     deps: {
@@ -23,13 +56,9 @@ const makeDeps = () => {
         verify: async () => true,
       },
       tokenIssuer: {
-        issueToken: async ({ subject, issuedAt, expiresAt }: any) => {
-          issued.subject = subject;
-          issued.issuedAt = issuedAt;
-          issued.expiresAt = expiresAt;
-          return `${subject}:${issuedAt}:${expiresAt}`;
-        },
+        issueToken,
       },
+      userRepository,
       clock: {
         nowSeconds: () => 1_700_000_000,
       },
@@ -44,18 +73,20 @@ describe("AuthenticateUserUseCase", () => {
     const useCase = new AuthenticateUserUseCase(deps);
 
     const result = await useCase.execute({
-      username: "test1",
+      email: "test1@example.com",
       password: "xc4uuicX",
     });
 
     expect(result).toEqual({
-      token: "test1:1700000000:1700003600",
-      tokenType: "Bearer",
-      expiresIn: tokenTtlSeconds,
-      user: { username: "test1" },
+      type: "bearer",
+      token: "user-1:1700000000:1700003600",
+      expiresAt: new Date(
+        1_700_000_000 * 1000 + tokenTtlSeconds * 1000,
+      ).toISOString(),
+      user: { id: "user-1", email: "test1@example.com", name: "Test One" },
     });
     expect(issued).toEqual({
-      subject: "test1",
+      subject: "user-1",
       issuedAt: 1_700_000_000,
       expiresAt: 1_700_000_000 + tokenTtlSeconds,
     });
@@ -71,7 +102,7 @@ describe("AuthenticateUserUseCase", () => {
     });
 
     await expect(
-      useCase.execute({ username: "missing", password: "pw" }),
+      useCase.execute({ email: "missing@example.com", password: "pw" }),
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
   });
 
@@ -85,7 +116,27 @@ describe("AuthenticateUserUseCase", () => {
     });
 
     await expect(
-      useCase.execute({ username: "test1", password: "wrong" }),
+      useCase.execute({ email: "test1@example.com", password: "wrong" }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+  });
+
+  test("throws InvalidCredentialsError when user is inactive", async () => {
+    const { deps } = makeDeps();
+    const useCase = new AuthenticateUserUseCase({
+      ...deps,
+      userRepository: {
+        ...deps.userRepository,
+        findByEmail: async () => ({
+          id: "user-2",
+          email: "test2@example.com",
+          name: "Test Two",
+          isActive: false,
+        }),
+      },
+    });
+
+    await expect(
+      useCase.execute({ email: "test2@example.com", password: "pw" }),
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
   });
 });

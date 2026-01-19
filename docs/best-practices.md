@@ -6,7 +6,8 @@
 2. [Clean Architecture + SOLID Principles](#clean-architecture--solid-principles)
 3. [Quality Gates (Secondary)](#quality-gates-secondary)
 4. [Security & Performance (Secondary)](#security--performance-secondary)
-5. [Checklists](#checklists)
+5. [Observability (Secondary)](#observability-secondary)
+6. [Checklists](#checklists)
 
 ---
 
@@ -186,6 +187,7 @@ Dependencies point **inward**. Outer layers can depend on inner layers, but not 
 - **Review against architecture** (no framework dependencies inside use cases)
 - **Docs updated** when interfaces change
 - **Hono docs source of truth**: always query https://hono.dev/llms-full.txt for Hono documentation
+- **DRY**: avoid duplication; prefer shared abstractions over copy-paste
 
 ---
 
@@ -202,6 +204,15 @@ Dependencies point **inward**. Outer layers can depend on inner layers, but not 
 - Prefer batch operations in repositories
 - Cache only at interface boundaries or infrastructure layer
 - Keep domain logic synchronous and side-effect free
+
+---
+
+## Observability (Secondary)
+
+- Add request IDs for every HTTP request and propagate them in logs
+- Use structured JSON logs at the interface boundary
+- Log error codes and statuses, not secrets or PII
+- Keep observability concerns in interface/infrastructure layers
 
 ---
 
@@ -226,4 +237,5 @@ Dependencies point **inward**. Outer layers can depend on inner layers, but not 
 - [ ] Tests pass with `bun test`
 - [ ] New behavior covered by tests
 - [ ] Clean Architecture boundaries preserved
+- [ ] No unnecessary duplication (DRY)
 - [ ] Docs updated for API or behavior changes

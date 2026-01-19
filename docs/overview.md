@@ -201,7 +201,7 @@ Authentication uses **JWTs** issued by the API and verified with **Hono JWT** mi
 
 ```typescript
 {
-  email: string; // Used as username lookup
+  email: string; // Used as lookup in htshadow file
   password: string; // Validated against /etc/htshadow
 }
 ```
@@ -220,6 +220,12 @@ Authentication uses **JWTs** issued by the API and verified with **Hono JWT** mi
   }
 }
 ```
+
+#### Auth Notes
+
+- Passwords are **external** (htshadow). The database stores **profiles only**.
+- JWT `sub` is the user ID; `email` is included as a claim.
+- `/auth/me` refreshes tokens (sliding 60-minute expiration).
 
 ---
 
@@ -260,11 +266,15 @@ Format: `resource:action` (e.g., `content:create`, `users:manage`)
 
 #### Default Roles (Seed Data)
 
-| Role                | Permissions                                              | System |
-| ------------------- | -------------------------------------------------------- | ------ |
-| **Super Admin**     | All `*:manage` permissions                               | Yes    |
-| **Content Manager** | `content:manage`, `playlists:manage`, `schedules:manage` | Yes    |
-| **Viewer**          | All `*:read` permissions                                 | Yes    |
+| Role            | Permissions                | System |
+| --------------- | -------------------------- | ------ |
+| **Super Admin** | All `*:manage` permissions | Yes    |
+
+Seed command:
+
+```
+bun run seed:super-admin
+```
 
 ---
 
@@ -553,7 +563,6 @@ import {
 export const users = mysqlTable("users", {
   id: varchar("id", { length: 36 }).primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -837,14 +846,14 @@ volumes:
 
 ### Key Decisions
 
-| Decision             | Choice               | Rationale                                  |
-| -------------------- | -------------------- | ------------------------------------------ |
-| What gets scheduled? | Playlists            | Same content can be in multiple playlists  |
-| Auth strategy        | JWT, 24h expiry      | Simple, stateless, sufficient for capstone |
-| RBAC                 | Dynamic permissions  | Required for flexible access control       |
-| Content processing   | None (pre-optimized) | Reduces complexity, meets timeline         |
-| Display settings     | Frontend handles     | Backend stays simple                       |
-| Device sync          | Polling + checksums  | Reliable, simple to implement              |
+| Decision             | Choice                  | Rationale                                  |
+| -------------------- | ----------------------- | ------------------------------------------ |
+| What gets scheduled? | Playlists               | Same content can be in multiple playlists  |
+| Auth strategy        | JWT, 60m sliding expiry | Simple, stateless, sufficient for capstone |
+| RBAC                 | Dynamic permissions     | Required for flexible access control       |
+| Content processing   | None (pre-optimized)    | Reduces complexity, meets timeline         |
+| Display settings     | Frontend handles        | Backend stays simple                       |
+| Device sync          | Polling + checksums     | Reliable, simple to implement              |
 
 ### Common Operations
 

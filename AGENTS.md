@@ -1,3 +1,4 @@
+<INSTRUCTIONS>
 # Development Principles
 
 This document defines how to work in the Wildfire backend codebase. It is aligned with:
@@ -54,6 +55,12 @@ Commands:
 
 - `bun test`
 - `bun test <path>`
+
+Always run in this order:
+
+1. `bun test`
+2. `bun run check`
+3. `bun run build`
 
 ---
 
@@ -154,3 +161,13 @@ When auditing the codebase, use this checklist:
 - No unused code or dead paths
 - Interfaces remain small and cohesive
 - Avoid framework-specific logic in domain/use cases
+
+---
+
+## Required Commands
+
+Always run these before delivery:
+
+- `bun run check`
+- `bun test`
+  </INSTRUCTIONS>

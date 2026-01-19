@@ -1,54 +1,119 @@
 import { describe, expect, test } from "bun:test";
-import path from "path";
-import { setTestEnv } from "../../helpers/env";
+import path from "node:path";
+import { Hono } from "hono";
+import { type UserRepository } from "#/application/ports/rbac";
+import { BcryptPasswordVerifier } from "#/infrastructure/auth/bcrypt-password.verifier";
+import { HtshadowCredentialsRepository } from "#/infrastructure/auth/htshadow.repo";
+import { JwtTokenIssuer } from "#/infrastructure/auth/jwt";
+import { createAuthRouter } from "#/interfaces/http/routes/auth.route";
 
 const fixturePath = path.join(
   import.meta.dir,
   "../../fixtures/example_htshadow",
 );
+const tokenTtlSeconds = 60 * 60;
+const parseJson = async <T>(response: Response) => (await response.json()) as T;
+
+const buildApp = () => {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const credentialsRepository = new HtshadowCredentialsRepository({
+    filePath: fixturePath,
+  });
+  const passwordVerifier = new BcryptPasswordVerifier();
+  const tokenIssuer = new JwtTokenIssuer({ secret: "test-secret" });
+  const clock = { nowSeconds: () => nowSeconds };
+  const userRepository: UserRepository = {
+    list: async () => [],
+    findByEmail: async (email: string) =>
+      email === "test1@example.com"
+        ? {
+            id: "user-1",
+            email,
+            name: "Test One",
+            isActive: true,
+          }
+        : null,
+    findById: async (id: string) =>
+      id === "user-1"
+        ? {
+            id: "user-1",
+            email: "test1@example.com",
+            name: "Test One",
+            isActive: true,
+          }
+        : null,
+    create: async ({ email, name, isActive }) => ({
+      id: "user-1",
+      email,
+      name,
+      isActive: isActive ?? true,
+    }),
+    update: async () => null,
+    delete: async () => false,
+  };
+
+  const authRouter = createAuthRouter({
+    credentialsRepository,
+    passwordVerifier,
+    tokenIssuer,
+    clock,
+    tokenTtlSeconds,
+    userRepository,
+    jwtSecret: "test-secret",
+  });
+
+  const app = new Hono();
+  app.route("/auth", authRouter);
+  return { app, nowSeconds };
+};
 
 describe("Auth routes", () => {
   test("POST /auth/login returns token for valid credentials", async () => {
-    setTestEnv({
-      HTSHADOW_PATH: fixturePath,
-      JWT_SECRET: "test-secret",
-    });
-
-    const { app } = await import("#/interfaces/http");
+    const { app, nowSeconds } = buildApp();
 
     const response = await app.request("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "test1", password: "xc4uuicX" }),
+      body: JSON.stringify({
+        email: "test1@example.com",
+        password: "xc4uuicX",
+      }),
     });
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await parseJson<{
+      type: "bearer";
+      token: string;
+      expiresAt: string;
+      user: { id: string; email: string; name: string };
+    }>(response);
 
     expect(body).toEqual({
+      type: "bearer",
       token: expect.any(String),
-      tokenType: "Bearer",
-      expiresIn: 60 * 60,
-      user: { username: "test1" },
+      expiresAt: new Date(
+        nowSeconds * 1000 + tokenTtlSeconds * 1000,
+      ).toISOString(),
+      user: { id: "user-1", email: "test1@example.com", name: "Test One" },
     });
   });
 
   test("POST /auth/login returns 401 for invalid credentials", async () => {
-    setTestEnv({
-      HTSHADOW_PATH: fixturePath,
-      JWT_SECRET: "test-secret",
-    });
-
-    const { app } = await import("#/interfaces/http");
+    const { app } = buildApp();
 
     const response = await app.request("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "test1", password: "wrong" }),
+      body: JSON.stringify({
+        email: "test1@example.com",
+        password: "wrong",
+      }),
     });
 
     expect(response.status).toBe(401);
-    const body = await response.json();
+    const body = await parseJson<{ error: { code: string; message: string } }>(
+      response,
+    );
 
     expect(body).toEqual({
       error: {
@@ -59,44 +124,44 @@ describe("Auth routes", () => {
   });
 
   test("GET /auth/me returns refreshed token when authorized", async () => {
-    setTestEnv({
-      HTSHADOW_PATH: fixturePath,
-      JWT_SECRET: "test-secret",
-    });
-
-    const { app } = await import("#/interfaces/http");
+    const { app, nowSeconds } = buildApp();
 
     const loginResponse = await app.request("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "test1", password: "xc4uuicX" }),
+      body: JSON.stringify({
+        email: "test1@example.com",
+        password: "xc4uuicX",
+      }),
     });
 
-    const loginBody = await loginResponse.json();
-    const token = loginBody.token as string;
+    const loginBody = await parseJson<{ token: string }>(loginResponse);
+    const token = loginBody.token;
 
     const response = await app.request("/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await parseJson<{
+      type: "bearer";
+      token: string;
+      expiresAt: string;
+      user: { id: string; email: string; name: string };
+    }>(response);
 
     expect(body).toEqual({
+      type: "bearer",
       token: expect.any(String),
-      tokenType: "Bearer",
-      expiresIn: 60 * 60,
-      user: { username: "test1" },
+      expiresAt: new Date(
+        nowSeconds * 1000 + tokenTtlSeconds * 1000,
+      ).toISOString(),
+      user: { id: "user-1", email: "test1@example.com", name: "Test One" },
     });
   });
 
   test("GET /auth/me returns 401 without token", async () => {
-    setTestEnv({
-      HTSHADOW_PATH: fixturePath,
-      JWT_SECRET: "test-secret",
-    });
-
-    const { app } = await import("#/interfaces/http");
+    const { app } = buildApp();
 
     const response = await app.request("/auth/me");
 
@@ -104,20 +169,18 @@ describe("Auth routes", () => {
   });
 
   test("POST /auth/logout returns 204", async () => {
-    setTestEnv({
-      HTSHADOW_PATH: fixturePath,
-      JWT_SECRET: "test-secret",
-    });
-
-    const { app } = await import("#/interfaces/http");
+    const { app } = buildApp();
 
     const loginResponse = await app.request("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "test1", password: "xc4uuicX" }),
+      body: JSON.stringify({
+        email: "test1@example.com",
+        password: "xc4uuicX",
+      }),
     });
 
-    const { token } = await loginResponse.json();
+    const { token } = await parseJson<{ token: string }>(loginResponse);
 
     const response = await app.request("/auth/logout", {
       method: "POST",
