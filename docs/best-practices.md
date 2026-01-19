@@ -185,6 +185,7 @@ Dependencies point **inward**. Outer layers can depend on inner layers, but not 
 - **Refactor with tests green** (no refactor before green)
 - **Review against architecture** (no framework dependencies inside use cases)
 - **Docs updated** when interfaces change
+- **Hono docs source of truth**: always query https://hono.dev/llms-full.txt for Hono documentation
 
 ---
 
