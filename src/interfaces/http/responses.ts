@@ -20,3 +20,25 @@ export const notImplemented = (c: Context, message: string) =>
     },
     501,
   );
+
+export const badRequest = (c: Context, message: string) =>
+  c.json<ErrorResponse>(
+    {
+      error: {
+        code: "INVALID_REQUEST",
+        message,
+      },
+    },
+    400,
+  );
+
+export const unauthorized = (c: Context, message: string) =>
+  c.json<ErrorResponse>(
+    {
+      error: {
+        code: "UNAUTHORIZED",
+        message,
+      },
+    },
+    401,
+  );
