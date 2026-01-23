@@ -28,4 +28,5 @@ export class JwtTokenIssuer implements TokenIssuer {
   }
 }
 
-export const createJwtMiddleware = (secret: string) => jwt({ secret });
+export const createJwtMiddleware = (secret: string) =>
+  jwt({ secret, alg: "HS256" });
