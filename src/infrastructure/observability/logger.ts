@@ -1,9 +1,23 @@
 import pino from "pino";
 import { env } from "#/env";
 
-export const logger = pino({
-  level: env.LOG_LEVEL,
-  base: {
-    service: "wildfire",
+const transport = env.LOG_PRETTY
+  ? pino.transport({
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "SYS:standard",
+        singleLine: true,
+      },
+    })
+  : undefined;
+
+export const logger = pino(
+  {
+    level: env.LOG_LEVEL,
+    base: {
+      service: "wildfire",
+    },
   },
-});
+  transport,
+);

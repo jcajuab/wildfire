@@ -4,6 +4,9 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     PORT: z.coerce.number().default(3000),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
     DATABASE_URL: z.string(),
 
     // Ensures required database environment variables are present
@@ -30,6 +33,7 @@ export const env = createEnv({
     JWT_SECRET: z.string(),
     JWT_ISSUER: z.string().optional(),
     LOG_LEVEL: z.string().default("info"),
+    LOG_PRETTY: z.coerce.boolean().default(true),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

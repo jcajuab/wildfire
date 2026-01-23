@@ -46,6 +46,7 @@ const authResponseSchema = z.object({
 
 export const createAuthRouter = (deps: AuthRouterDeps) => {
   const router = new Hono<{ Variables: JwtUserVariables }>();
+  const authTags = ["Auth"];
 
   const authenticateUser = new AuthenticateUserUseCase({
     credentialsRepository: deps.credentialsRepository,
@@ -72,6 +73,7 @@ export const createAuthRouter = (deps: AuthRouterDeps) => {
     validateJson(authLoginSchema),
     describeRoute({
       description: "Authenticate user credentials and issue JWT",
+      tags: authTags,
       responses: {
         200: {
           description: "Authenticated",
@@ -120,6 +122,7 @@ export const createAuthRouter = (deps: AuthRouterDeps) => {
     requireJwtUser,
     describeRoute({
       description: "Get current user and refresh JWT",
+      tags: authTags,
       responses: {
         200: {
           description: "Authenticated user",
@@ -161,6 +164,7 @@ export const createAuthRouter = (deps: AuthRouterDeps) => {
     requireJwtUser,
     describeRoute({
       description: "Logout current user (no-op)",
+      tags: authTags,
       responses: {
         204: {
           description: "Logged out",

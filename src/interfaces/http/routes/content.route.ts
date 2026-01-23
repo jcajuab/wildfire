@@ -30,6 +30,7 @@ import {
   contentListQuerySchema,
   contentListResponseSchema,
   contentSchema,
+  contentUploadRequestBodySchema,
   createUploadContentSchema,
   downloadUrlResponseSchema,
 } from "#/interfaces/http/validators/content.schema";
@@ -53,6 +54,7 @@ export interface ContentRouterDeps {
 
 export const createContentRouter = (deps: ContentRouterDeps) => {
   const router = new Hono<{ Variables: JwtUserVariables }>();
+  const contentTags = ["Content"];
   const { jwtMiddleware, requirePermission } = createPermissionMiddleware({
     jwtSecret: deps.jwtSecret,
     authorizationRepository: deps.repositories.authorizationRepository,
@@ -96,6 +98,15 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
     validateForm(uploadSchema),
     describeRoute({
       description: "Upload a content file",
+      tags: contentTags,
+      requestBody: {
+        content: {
+          "multipart/form-data": {
+            schema: contentUploadRequestBodySchema,
+          },
+        },
+        required: true,
+      },
       responses: {
         201: {
           description: "Content created",
@@ -158,6 +169,7 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
     validateQuery(contentListQuerySchema),
     describeRoute({
       description: "List content",
+      tags: contentTags,
       responses: {
         200: {
           description: "Content list",
@@ -206,6 +218,7 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
     validateParams(contentIdParamSchema),
     describeRoute({
       description: "Get content details",
+      tags: contentTags,
       responses: {
         200: {
           description: "Content details",
@@ -253,6 +266,7 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
     validateParams(contentIdParamSchema),
     describeRoute({
       description: "Delete content",
+      tags: contentTags,
       responses: {
         204: { description: "Deleted" },
         400: {
@@ -293,6 +307,7 @@ export const createContentRouter = (deps: ContentRouterDeps) => {
     validateParams(contentIdParamSchema),
     describeRoute({
       description: "Get presigned content download URL",
+      tags: contentTags,
       responses: {
         200: {
           description: "Download URL",

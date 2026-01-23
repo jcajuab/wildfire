@@ -45,5 +45,8 @@ export const createPermissionMiddleware = (deps: {
     };
   };
 
-  return { jwtMiddleware, requirePermission, requireJwtUser };
+  const authorize = (permission: string) =>
+    [jwtMiddleware, requirePermission(permission)] as const;
+
+  return { jwtMiddleware, requirePermission, requireJwtUser, authorize };
 };

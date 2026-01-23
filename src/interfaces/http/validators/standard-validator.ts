@@ -1,3 +1,4 @@
+import { sValidator } from "@hono/standard-validator";
 import { type StandardSchemaV1 } from "@standard-schema/spec";
 import { type Context } from "hono";
 import { validator } from "hono-openapi";
@@ -18,7 +19,7 @@ export const validateJson = <Schema extends StandardSchemaV1>(schema: Schema) =>
   validator("json", schema, validationHook);
 
 export const validateForm = <Schema extends StandardSchemaV1>(schema: Schema) =>
-  validator("form", schema, validationHook);
+  sValidator("form", schema, validationHook);
 
 export const validateQuery = <Schema extends StandardSchemaV1>(
   schema: Schema,

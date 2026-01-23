@@ -52,7 +52,10 @@ export interface RbacRouterDeps {
 
 export const createRbacRouter = (deps: RbacRouterDeps) => {
   const router = new Hono<{ Variables: JwtUserVariables }>();
-  const { jwtMiddleware, requirePermission } = createPermissionMiddleware({
+  const roleTags = ["Roles"];
+  const permissionTags = ["Permissions"];
+  const userTags = ["Users"];
+  const { authorize } = createPermissionMiddleware({
     jwtSecret: deps.jwtSecret,
     authorizationRepository: deps.repositories.authorizationRepository,
   });
@@ -108,13 +111,12 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
     userRoleRepository: deps.repositories.userRoleRepository,
   });
 
-  router.use("/*", jwtMiddleware);
-
   router.get(
     "/roles",
-    requirePermission("roles:read"),
+    ...authorize("roles:read"),
     describeRoute({
       description: "List roles",
+      tags: roleTags,
       responses: {
         200: {
           description: "Roles",
@@ -145,10 +147,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.post(
     "/roles",
-    requirePermission("roles:create"),
+    ...authorize("roles:create"),
     validateJson(createRoleSchema),
     describeRoute({
       description: "Create role",
+      tags: roleTags,
       responses: {
         201: { description: "Role created" },
         400: {
@@ -186,9 +189,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.get(
     "/roles/:id",
-    requirePermission("roles:read"),
+    ...authorize("roles:read"),
     describeRoute({
       description: "Get role",
+      tags: roleTags,
       responses: {
         200: { description: "Role" },
         404: {
@@ -216,10 +220,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.patch(
     "/roles/:id",
-    requirePermission("roles:update"),
+    ...authorize("roles:update"),
     validateJson(updateRoleSchema),
     describeRoute({
       description: "Update role",
+      tags: roleTags,
       responses: {
         200: { description: "Role" },
         400: {
@@ -259,9 +264,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.delete(
     "/roles/:id",
-    requirePermission("roles:delete"),
+    ...authorize("roles:delete"),
     describeRoute({
       description: "Delete role",
+      tags: roleTags,
       responses: {
         204: { description: "Deleted" },
         404: {
@@ -289,9 +295,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.get(
     "/roles/:id/permissions",
-    requirePermission("roles:read"),
+    ...authorize("roles:read"),
     describeRoute({
       description: "Get role permissions",
+      tags: roleTags,
       responses: {
         200: { description: "Permissions" },
         404: {
@@ -321,10 +328,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.put(
     "/roles/:id/permissions",
-    requirePermission("roles:update"),
+    ...authorize("roles:update"),
     validateJson(setRolePermissionsSchema),
     describeRoute({
       description: "Set role permissions",
+      tags: roleTags,
       responses: {
         200: { description: "Permissions updated" },
         400: {
@@ -364,9 +372,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.get(
     "/permissions",
-    requirePermission("roles:read"),
+    ...authorize("roles:read"),
     describeRoute({
       description: "List permissions",
+      tags: permissionTags,
       responses: {
         200: { description: "Permissions" },
       },
@@ -379,9 +388,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.get(
     "/users",
-    requirePermission("users:read"),
+    ...authorize("users:read"),
     describeRoute({
       description: "List users",
+      tags: userTags,
       responses: {
         200: { description: "Users" },
       },
@@ -394,10 +404,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.post(
     "/users",
-    requirePermission("users:create"),
+    ...authorize("users:create"),
     validateJson(createUserSchema),
     describeRoute({
       description: "Create user",
+      tags: userTags,
       responses: {
         201: { description: "User created" },
         400: {
@@ -419,9 +430,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.get(
     "/users/:id",
-    requirePermission("users:read"),
+    ...authorize("users:read"),
     describeRoute({
       description: "Get user",
+      tags: userTags,
       responses: {
         200: { description: "User" },
         404: {
@@ -449,10 +461,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.patch(
     "/users/:id",
-    requirePermission("users:update"),
+    ...authorize("users:update"),
     validateJson(updateUserSchema),
     describeRoute({
       description: "Update user",
+      tags: userTags,
       responses: {
         200: { description: "User" },
         400: {
@@ -492,9 +505,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.delete(
     "/users/:id",
-    requirePermission("users:delete"),
+    ...authorize("users:delete"),
     describeRoute({
       description: "Delete user",
+      tags: userTags,
       responses: {
         204: { description: "Deleted" },
         404: {
@@ -522,10 +536,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   router.put(
     "/users/:id/roles",
-    requirePermission("users:update"),
+    ...authorize("users:update"),
     validateJson(setUserRolesSchema),
     describeRoute({
       description: "Assign roles to user",
+      tags: userTags,
       responses: {
         200: { description: "Roles assigned" },
         400: {

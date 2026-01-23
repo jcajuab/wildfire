@@ -6,11 +6,13 @@ import {
 } from "#/interfaces/http/responses";
 
 export const playlistsRouter = new Hono();
+const playlistsTags = ["Playlists"];
 
 playlistsRouter.get(
   "/",
   describeRoute({
     description: "Playlists routes placeholder",
+    tags: playlistsTags,
     responses: {
       501: {
         description: "Not implemented",

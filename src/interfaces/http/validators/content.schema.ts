@@ -1,3 +1,4 @@
+import { type OpenAPIV3_1 } from "openapi-types";
 import { z } from "zod";
 import { isSupportedMimeType } from "#/domain/content/content";
 
@@ -52,3 +53,12 @@ export const createUploadContentSchema = (maxBytes: number) =>
 export const downloadUrlResponseSchema = z.object({
   downloadUrl: z.string().url(),
 });
+
+export const contentUploadRequestBodySchema: OpenAPIV3_1.SchemaObject = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    file: { type: "string", format: "binary" },
+  },
+  required: ["title", "file"],
+};

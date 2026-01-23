@@ -1,5 +1,6 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { type RequestIdVariables } from "hono/request-id";
 import { openAPIRouteHandler } from "hono-openapi";
 import { env } from "#/env";
@@ -97,31 +98,42 @@ const rbacRouter = createRbacRouter({
 app.route("/", rbacRouter);
 
 app.onError((err, c) => {
-  logger.error(
-    {
-      err,
-      requestId: c.get("requestId"),
-      method: c.req.method,
-      path: c.req.path,
-    },
-    "unhandled error",
-  );
+  const status = err instanceof HTTPException ? err.status : 500;
+  const logPayload = {
+    err,
+    requestId: c.get("requestId"),
+    method: c.req.method,
+    path: c.req.path,
+    status,
+  };
+
+  if (status >= 500) {
+    logger.error(logPayload, "request error");
+  } else {
+    logger.warn(logPayload, "request error");
+  }
+
+  if (err instanceof HTTPException) {
+    return err.getResponse();
+  }
 
   return internalServerError(c, "Unexpected error");
 });
 
-app.get(
-  "/openapi.json",
-  openAPIRouteHandler(app, {
-    documentation: {
-      info: {
-        title: `${packageJSON.name.toUpperCase()} API Reference`,
-        description: packageJSON.description,
-        version: packageJSON.version,
+if (env.NODE_ENV !== "production") {
+  app.get(
+    "/openapi.json",
+    openAPIRouteHandler(app, {
+      documentation: {
+        info: {
+          title: `${packageJSON.name.toUpperCase()} API Reference`,
+          description: packageJSON.description,
+          version: packageJSON.version,
+        },
+        servers: [{ url: `http://localhost:${env.PORT}` }],
       },
-      servers: [{ url: `http://localhost:${env.PORT}` }],
-    },
-  }),
-);
+    }),
+  );
 
-app.get("/docs", Scalar({ url: "/openapi.json" }));
+  app.get("/docs", Scalar({ url: "/openapi.json" }));
+}
