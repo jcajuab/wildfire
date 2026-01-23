@@ -13,12 +13,14 @@ import { RoleDbRepository } from "#/infrastructure/db/repositories/role.repo";
 import { RolePermissionDbRepository } from "#/infrastructure/db/repositories/role-permission.repo";
 import { UserDbRepository } from "#/infrastructure/db/repositories/user.repo";
 import { UserRoleDbRepository } from "#/infrastructure/db/repositories/user-role.repo";
+import { logger } from "#/infrastructure/observability/logger";
 import { S3ContentStorage } from "#/infrastructure/storage/s3-content.storage";
 import { SystemClock } from "#/infrastructure/time/system.clock";
 import {
   requestId,
   requestLogger,
 } from "#/interfaces/http/middleware/observability";
+import { internalServerError } from "#/interfaces/http/responses";
 import { createAuthRouter } from "#/interfaces/http/routes/auth.route";
 import { createContentRouter } from "#/interfaces/http/routes/content.route";
 import { devicesRouter } from "#/interfaces/http/routes/devices.route";
@@ -93,6 +95,20 @@ const rbacRouter = createRbacRouter({
 });
 
 app.route("/", rbacRouter);
+
+app.onError((err, c) => {
+  logger.error(
+    {
+      err,
+      requestId: c.get("requestId"),
+      method: c.req.method,
+      path: c.req.path,
+    },
+    "unhandled error",
+  );
+
+  return internalServerError(c, "Unexpected error");
+});
 
 app.get(
   "/openapi.json",

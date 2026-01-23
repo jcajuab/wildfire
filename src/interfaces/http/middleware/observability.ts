@@ -1,5 +1,6 @@
 import { type MiddlewareHandler } from "hono";
 import { type RequestIdVariables, requestId } from "hono/request-id";
+import { logger } from "#/infrastructure/observability/logger";
 
 export { requestId };
 
@@ -14,13 +15,14 @@ export const requestLogger: MiddlewareHandler<{
   const method = c.req.method;
   const path = c.req.path;
 
-  console.log(
-    JSON.stringify({
+  logger.info(
+    {
       requestId,
       method,
       path,
       status,
       durationMs,
-    }),
+    },
+    "request completed",
   );
 };

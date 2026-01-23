@@ -64,3 +64,14 @@ export const notFound = (c: Context, message: string) =>
     },
     404,
   );
+
+export const internalServerError = (c: Context, message: string) =>
+  c.json<ErrorResponse>(
+    {
+      error: {
+        code: "INTERNAL_ERROR",
+        message,
+      },
+    },
+    500,
+  );

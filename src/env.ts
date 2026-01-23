@@ -29,6 +29,7 @@ export const env = createEnv({
     HTSHADOW_PATH: z.string().default("/etc/htshadow"),
     JWT_SECRET: z.string(),
     JWT_ISSUER: z.string().optional(),
+    LOG_LEVEL: z.string().default("info"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
