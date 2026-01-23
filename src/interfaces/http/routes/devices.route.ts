@@ -17,6 +17,7 @@ import {
   RegisterDeviceUseCase,
 } from "#/application/use-cases/devices";
 import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
+import { setAction } from "#/interfaces/http/middleware/observability";
 import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
 import {
   badRequest,
@@ -95,6 +96,11 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
 
   router.post(
     "/",
+    setAction("devices.register", {
+      route: "/devices",
+      actorType: "device",
+      resourceType: "device",
+    }),
     requireDeviceApiKey(deps.deviceApiKey),
     validateJson(registerDeviceSchema),
     describeRoute({
@@ -143,6 +149,8 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
           identifier: payload.identifier,
           location: payload.location ?? null,
         });
+        c.set("actorId", result.id);
+        c.set("resourceId", result.id);
         return c.json(result);
       } catch (error) {
         if (error instanceof Error) {
@@ -155,6 +163,7 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
 
   router.get(
     "/",
+    setAction("devices.list", { route: "/devices" }),
     ...authorize("devices:read"),
     describeRoute({
       description: "List devices",
@@ -194,6 +203,7 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
 
   router.get(
     "/:id",
+    setAction("devices.get", { route: "/devices/:id", resourceType: "device" }),
     ...authorize("devices:read"),
     validateParams(deviceIdParamSchema),
     describeRoute({
@@ -220,6 +230,7 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       try {
         const result = await getDevice.execute({ id: params.id });
         return c.json(result);
@@ -234,6 +245,11 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
 
   router.get(
     "/:id/active-schedule",
+    setAction("devices.activeSchedule.read", {
+      route: "/devices/:id/active-schedule",
+      actorType: "device",
+      resourceType: "device",
+    }),
     requireDeviceApiKey(deps.deviceApiKey),
     validateParams(deviceIdParamSchema),
     describeRoute({
@@ -268,6 +284,8 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("actorId", params.id);
+      c.set("resourceId", params.id);
       try {
         const result = await getActiveSchedule.execute({
           deviceId: params.id,
@@ -285,6 +303,11 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
 
   router.get(
     "/:id/manifest",
+    setAction("devices.manifest.read", {
+      route: "/devices/:id/manifest",
+      actorType: "device",
+      resourceType: "device",
+    }),
     requireDeviceApiKey(deps.deviceApiKey),
     validateParams(deviceIdParamSchema),
     describeRoute({
@@ -319,6 +342,8 @@ export const createDevicesRouter = (deps: DevicesRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("actorId", params.id);
+      c.set("resourceId", params.id);
       try {
         const result = await getManifest.execute({
           deviceId: params.id,

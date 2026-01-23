@@ -37,33 +37,33 @@ Date: 2026-01-23
 
 ## Devices
 
-- [ ] Domain entities/value objects
-- [ ] Use cases
-- [ ] Ports (interfaces)
-- [ ] Adapters (HTTP routes/controllers)
-- [ ] Infrastructure (repositories)
-- [ ] Tests (unit + route)
-- [ ] Integration tests
-- [ ] Observability per action
+- [x] Domain entities/value objects
+- [x] Use cases
+- [x] Ports (interfaces)
+- [x] Adapters (HTTP routes/controllers)
+- [x] Infrastructure (repositories)
+- [x] Tests (unit + route)
+- [x] Integration tests (gated)
+- [x] Observability per action
 
 ## Playlists
 
-- [ ] Domain entities/value objects
-- [ ] Use cases
-- [ ] Ports (interfaces)
-- [ ] Adapters (HTTP routes/controllers)
-- [ ] Infrastructure (repositories)
-- [ ] Tests (unit + route)
-- [ ] Integration tests
-- [ ] Observability per action
+- [x] Domain entities/value objects
+- [x] Use cases
+- [x] Ports (interfaces)
+- [x] Adapters (HTTP routes/controllers)
+- [x] Infrastructure (repositories)
+- [x] Tests (unit + route)
+- [x] Integration tests (gated)
+- [x] Observability per action
 
 ## Schedules
 
-- [ ] Domain entities/value objects
-- [ ] Use cases
-- [ ] Ports (interfaces)
-- [ ] Adapters (HTTP routes/controllers)
-- [ ] Infrastructure (repositories)
-- [ ] Tests (unit + route)
-- [ ] Integration tests
-- [ ] Observability per action
+- [x] Domain entities/value objects
+- [x] Use cases
+- [x] Ports (interfaces)
+- [x] Adapters (HTTP routes/controllers)
+- [x] Infrastructure (repositories)
+- [x] Tests (unit + route)
+- [x] Integration tests (gated)
+- [x] Observability per action

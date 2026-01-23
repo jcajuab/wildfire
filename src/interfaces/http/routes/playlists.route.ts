@@ -18,6 +18,7 @@ import {
   UpdatePlaylistUseCase,
 } from "#/application/use-cases/playlists";
 import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
+import { setAction } from "#/interfaces/http/middleware/observability";
 import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
 import {
   badRequest,
@@ -93,6 +94,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.get(
     "/",
+    setAction("playlists.list", { route: "/playlists" }),
     ...authorize("playlists:read"),
     describeRoute({
       description: "List playlists",
@@ -116,6 +118,10 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.post(
     "/",
+    setAction("playlists.create", {
+      route: "/playlists",
+      resourceType: "playlist",
+    }),
     ...authorize("playlists:create"),
     validateJson(createPlaylistSchema),
     describeRoute({
@@ -139,12 +145,17 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
         description: payload.description ?? null,
         createdById: c.get("userId"),
       });
+      c.set("resourceId", result.id);
       return c.json(result, 201);
     },
   );
 
   router.get(
     "/:id",
+    setAction("playlists.get", {
+      route: "/playlists/:id",
+      resourceType: "playlist",
+    }),
     ...authorize("playlists:read"),
     validateParams(playlistIdParamSchema),
     describeRoute({
@@ -171,6 +182,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       try {
         const result = await getPlaylist.execute({ id: params.id });
         return c.json(result);
@@ -185,6 +197,10 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.patch(
     "/:id",
+    setAction("playlists.update", {
+      route: "/playlists/:id",
+      resourceType: "playlist",
+    }),
     ...authorize("playlists:update"),
     validateParams(playlistIdParamSchema),
     validateJson(updatePlaylistSchema),
@@ -204,6 +220,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       const payload = updatePlaylistSchema.parse(c.req.valid("json"));
       try {
         const result = await updatePlaylist.execute({
@@ -223,6 +240,10 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.delete(
     "/:id",
+    setAction("playlists.delete", {
+      route: "/playlists/:id",
+      resourceType: "playlist",
+    }),
     ...authorize("playlists:delete"),
     validateParams(playlistIdParamSchema),
     describeRoute({
@@ -242,6 +263,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       try {
         await deletePlaylist.execute({ id: params.id });
         return c.body(null, 204);
@@ -256,6 +278,10 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.post(
     "/:id/items",
+    setAction("playlists.item.add", {
+      route: "/playlists/:id/items",
+      resourceType: "playlist-item",
+    }),
     ...authorize("playlists:update"),
     validateParams(playlistIdParamSchema),
     validateJson(addPlaylistItemSchema),
@@ -283,6 +309,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
           sequence: payload.sequence,
           duration: payload.duration,
         });
+        c.set("resourceId", result.id);
         return c.json(result, 201);
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -298,6 +325,10 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.patch(
     "/:id/items/:itemId",
+    setAction("playlists.item.update", {
+      route: "/playlists/:id/items/:itemId",
+      resourceType: "playlist-item",
+    }),
     ...authorize("playlists:update"),
     validateParams(playlistItemParamSchema),
     validateJson(updatePlaylistItemSchema),
@@ -317,6 +348,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.itemId);
       const payload = updatePlaylistItemSchema.parse(c.req.valid("json"));
       try {
         const result = await updatePlaylistItem.execute({
@@ -339,6 +371,10 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
 
   router.delete(
     "/:id/items/:itemId",
+    setAction("playlists.item.delete", {
+      route: "/playlists/:id/items/:itemId",
+      resourceType: "playlist-item",
+    }),
     ...authorize("playlists:update"),
     validateParams(playlistItemParamSchema),
     describeRoute({
@@ -358,6 +394,7 @@ export const createPlaylistsRouter = (deps: PlaylistsRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.itemId);
       try {
         await deletePlaylistItem.execute({ id: params.itemId });
         return c.body(null, 204);

@@ -13,6 +13,7 @@ import {
   UpdateScheduleUseCase,
 } from "#/application/use-cases/schedules";
 import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
+import { setAction } from "#/interfaces/http/middleware/observability";
 import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
 import {
   badRequest,
@@ -75,6 +76,7 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
 
   router.get(
     "/",
+    setAction("schedules.list", { route: "/schedules" }),
     ...authorize("schedules:read"),
     describeRoute({
       description: "List schedules",
@@ -98,6 +100,10 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
 
   router.post(
     "/",
+    setAction("schedules.create", {
+      route: "/schedules",
+      resourceType: "schedule",
+    }),
     ...authorize("schedules:create"),
     validateJson(createScheduleSchema),
     describeRoute({
@@ -127,6 +133,7 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
           priority: payload.priority,
           isActive: payload.isActive ?? true,
         });
+        c.set("resourceId", result.id);
         return c.json(result, 201);
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -142,6 +149,10 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
 
   router.get(
     "/:id",
+    setAction("schedules.get", {
+      route: "/schedules/:id",
+      resourceType: "schedule",
+    }),
     ...authorize("schedules:read"),
     validateParams(scheduleIdParamSchema),
     describeRoute({
@@ -168,6 +179,7 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       try {
         const result = await getSchedule.execute({ id: params.id });
         return c.json(result);
@@ -182,6 +194,10 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
 
   router.patch(
     "/:id",
+    setAction("schedules.update", {
+      route: "/schedules/:id",
+      resourceType: "schedule",
+    }),
     ...authorize("schedules:update"),
     validateParams(scheduleIdParamSchema),
     validateJson(updateScheduleSchema),
@@ -201,6 +217,7 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       const payload = updateScheduleSchema.parse(c.req.valid("json"));
       try {
         const result = await updateSchedule.execute({
@@ -229,6 +246,10 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
 
   router.delete(
     "/:id",
+    setAction("schedules.delete", {
+      route: "/schedules/:id",
+      resourceType: "schedule",
+    }),
     ...authorize("schedules:delete"),
     validateParams(scheduleIdParamSchema),
     describeRoute({
@@ -248,6 +269,7 @@ export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
     }),
     async (c) => {
       const params = c.req.valid("param");
+      c.set("resourceId", params.id);
       try {
         await deleteSchedule.execute({ id: params.id });
         return c.body(null, 204);
