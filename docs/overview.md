@@ -1,876 +1,988 @@
-# WILDFIRE API Specification
+# Wildfire Backend Overview (Source-of-Truth Spec)
+
+This document is a module-by-module specification of the Wildfire backend, derived from the current code in:
+
+- `src/interfaces/http/index.ts`
+- `src/interfaces/http/routes/*.ts`
+- `src/interfaces/http/validators/*.ts`
+- `src/application/use-cases/**`
+- `src/domain/**`
+- `src/infrastructure/**`
+- `src/env.ts`
+
+Scope: backend API only.
 
 ---
 
-## Table of Contents
+## What Wildfire Is
 
-1. [Overview](#overview)
-2. [Development Approach (TDD First)](#development-approach-tdd-first)
-3. [Directory Structure](#directory-structure)
-4. [Architecture](#architecture)
-5. [Content Types](#content-types)
-6. [Modules](#modules)
-   - [Auth Module](#1-auth-module)
-   - [RBAC Module](#2-rbac-module)
-   - [Content Module](#3-content-module)
-   - [Playlists Module](#4-playlists-module)
-   - [Schedules Module](#5-schedules-module)
-   - [Devices Module](#6-devices-module)
-7. [Database Schema](#database-schema)
-8. [API Endpoints Summary](#api-endpoints-summary)
-9. [Display Settings Reference](#display-settings-reference)
+Wildfire is a centralized backend for managing digital signage on a campus:
+
+- Staff users upload media ("content") to object storage.
+- Staff users assemble content into playlists (ordered items with durations).
+- Staff users schedule playlists onto devices (time windows + days + priority).
+- Devices poll the API for the current active schedule and a "manifest" that includes presigned download URLs and checksums.
+
+Key rule: playlists are scheduled (not individual content items).
 
 ---
 
-## Overview
+## Architecture (As Implemented)
 
-### What Is This Application?
+- Runtime: Bun
+- HTTP framework: Hono
+- Validation: Zod (via `hono-openapi` + `@hono/standard-validator`)
+- Database: MySQL (Drizzle ORM)
+- Object storage: MinIO (S3-compatible, AWS SDK S3 client)
+- Auth: JWT (HS256) for staff users; shared API key for devices
+- API docs: OpenAPI + Scalar (enabled when `NODE_ENV !== "production"`)
 
-A **centralized backend platform** for managing digital signage content across a **school campus**. TVs connected to Raspberry Pi 4 devices display scheduled playlists containing images, videos, and PDFs.
+Composition root / dependency wiring: `src/interfaces/http/index.ts`
 
-### Core Flow
-
-```
-Admin uploads Content --> Stored in MinIO with checksum
-                                |
-                                v
-Content added to Playlist --> Ordered items with duration
-                                |
-                                v
-Schedule created --> "Play Playlist X on Device Y, Mon-Fri 8am-5pm"
-                                |
-                                v
-Device polls for manifest --> Downloads & caches content --> Plays playlist
-```
-
-### Key Concepts
-
-| Entity           | Description                                                |
-| ---------------- | ---------------------------------------------------------- |
-| **Content**      | Raw media file (image, video, PDF) stored in MinIO         |
-| **Playlist**     | Ordered collection of content items with display durations |
-| **PlaylistItem** | Content + sequence + duration within a playlist            |
-| **Schedule**     | Time-based rule assigning a Playlist to a Device           |
-| **Device**       | Raspberry Pi 4 display unit with unique identifier         |
-
-### What Gets Scheduled?
-
-**Playlists are scheduled, NOT individual content items.**
-
-This allows the same content to appear in multiple playlists with different durations and ordering.
+The HTTP layer creates repositories and infrastructure adapters and injects them into routers and use cases.
 
 ---
 
-## Development Approach (TDD First)
+## Conventions
 
-Wildfire is **TDD-first**. Every behavior change starts with a failing test, then the smallest implementation to pass, then refactor with tests green.
+### Base Responses
 
-- Tests use the **Bun test runner** (`bun test`) and follow the Red-Green-Refactor loop.
-- Keep tests aligned to architecture layers (domain -> use cases -> adapters -> infrastructure).
-- Favor fast unit tests; only use integration tests for DB, storage, and HTTP boundaries.
+All error responses use the same JSON shape (`src/interfaces/http/responses.ts`):
 
----
-
-## Directory Structure
-
-### Directory Structure (Clean Architecture)
-
-```
-src/
-  index.ts               # Runtime bootstrap (create Hono app, start server)
-  domain/
-    content.ts           # Entity/value object (example)
-    playlist.ts          # Entity/value object (example)
-  application/
-    use-cases/
-      create-playlist.ts # Use case (example)
-    ports/
-      content-repo.ts    # Repository interface (example)
-  interfaces/
-    http/
-      index.ts           # Routes entrypoint / Hono app wiring
-      routes/
-        content.routes.ts # Route handlers (example)
-      validators/
-        content.schema.ts # Zod request validation (example)
-  infrastructure/
-    db/
-      client.ts          # Drizzle + mysql2 client
-      schema.ts          # Drizzle schema
-      repositories/
-        content.mysql.ts # DB repository implementation (example)
-    storage/
-      minio.client.ts    # MinIO adapter (example)
-    auth/
-      jwt.ts             # JWT helpers/middleware (example)
-    docs/
-      scalar.ts          # API docs wiring (example)
-  shared/
-    errors.ts            # Error types/mapping (example)
-    logging.ts           # Logger setup (example)
-tests/
-  domain/
-    content.test.ts      # Domain unit tests (example)
-  application/
-    create-playlist.test.ts # Use case unit tests (example)
-  interfaces/
-    http/
-      content.routes.test.ts # Route contract tests (example)
-  infrastructure/
-    db/
-      content.repo.test.ts # DB integration tests (example)
-```
-
-### Package Ownership (current + future)
-
-- **Hono** (`hono`, `hono-openapi`, `@hono/standard-validator`) -> `interfaces/http/`
-- **Validation** (`zod`) -> boundary validation (controllers/mappers)
-- **Env** (`@t3-oss/env-core`, `dotenvx`) -> `src/env.ts` + scripts
-- **DB** (`drizzle-orm`, `mysql2`, `drizzle-kit`) -> `infrastructure/db/` + `src/schema.ts`
-- **Docs** (`@scalar/hono-api-reference`) -> `infrastructure/docs/`
-- **Tooling** (`@biomejs/biome`, `prettier`, `lefthook`) -> repo tooling only
-
-Future package placement (examples):
-
-- **Storage** (MinIO / S3-compatible client) -> `infrastructure/storage/`
-- **Auth** (JWT helpers) -> `infrastructure/auth/` + `interfaces/http/` middleware
-- **Logging/Tracing** (structured logger) -> `shared/` or `infrastructure/observability/`
-
----
-
-## Architecture
-
-| Aspect              | Choice                                |
-| ------------------- | ------------------------------------- |
-| **Pattern**         | Modular Monolith (6 bounded contexts) |
-| **Runtime**         | Bun                                   |
-| **Package Manager** | Bun                                   |
-| **Framework**       | Hono                                  |
-| **Database**        | MySQL + Drizzle ORM                   |
-| **Storage**         | MinIO (S3-compatible)                 |
-| **Auth**            | Hono JWT                              |
-| **Validation**      | Zod                                   |
-| **Testing**         | Bun Test Runner                       |
-| **API Docs**        | Scalar                                |
-
-### Infrastructure
-
-| Service   | Image        | Purpose          |
-| --------- | ------------ | ---------------- |
-| **api**   | Bun (custom) | Hono API server  |
-| **mysql** | mysql:8      | Primary database |
-| **minio** | minio/minio  | Object storage   |
-
-> **Note**: No Redis required - no async processing queues needed for this scope.
-
----
-
-## Content Types
-
-| Type      | Accepted Formats          | MIME Types                                           | Notes                                   |
-| --------- | ------------------------- | ---------------------------------------------------- | --------------------------------------- |
-| **IMAGE** | jpg, jpeg, png, webp, gif | `image/jpeg`, `image/png`, `image/webp`, `image/gif` | Direct use, pre-optimized               |
-| **VIDEO** | mp4 (H.264)               | `video/mp4`                                          | Must be pre-optimized for Pi 4 playback |
-| **PDF**   | pdf                       | `application/pdf`                                    | Rendered on client device               |
-
-### Upload Requirements
-
-- **No server-side processing** - users must upload optimized files
-- **Max file size**: Configure based on storage capacity (recommend 100MB). Use `CONTENT_MAX_UPLOAD_BYTES` (default `104857600`).
-- **Video format**: H.264 codec, yuv420p pixel format for Pi 4 hardware decoding
-
----
-
-## Modules
-
-### 1. Auth Module
-
-Purpose: Authenticate staff users and issue/revoke access tokens for API calls.
-
-Authentication uses **JWTs** issued by the API and verified with **Hono JWT** middleware.
-
-#### Routes
-
-| Method | Endpoint       | Description                   | Auth   |
-| ------ | -------------- | ----------------------------- | ------ |
-| `POST` | `/auth/login`  | Authenticate user, return JWT | Public |
-| `POST` | `/auth/logout` | Revoke current token          | Auth   |
-| `GET`  | `/auth/me`     | Get current user profile      | Auth   |
-
-#### Login Request
-
-```typescript
+```json
 {
-  email: string; // Used as lookup in htshadow file
-  password: string; // Validated against /etc/htshadow
-}
-```
-
-#### Login Response
-
-```typescript
-{
-  type: "bearer",
-  token: "jwt_eyJhbGci...", // JWT access token
-  expiresAt: string, // ISO timestamp
-  user: {
-    id: string,
-    email: string,
-    name: string
+  "error": {
+    "code": "INVALID_REQUEST | UNAUTHORIZED | FORBIDDEN | NOT_FOUND | INTERNAL_ERROR",
+    "message": "..."
   }
 }
 ```
 
-#### Auth Notes
+Common status codes:
 
-- Passwords are **external** (htshadow). The database stores **profiles only**.
-- JWT `sub` is the user ID; `email` is included as a claim.
-- `/auth/me` refreshes tokens (sliding 60-minute expiration).
+- 400 `INVALID_REQUEST` (failed request validation)
+- 401 `UNAUTHORIZED` (invalid or missing auth)
+- 403 `FORBIDDEN` (authenticated but not allowed)
+- 404 `NOT_FOUND`
+- 500 `INTERNAL_ERROR`
+
+### Request Validation
+
+Validation failures return:
+
+- 400 with `{ "error": { "code": "INVALID_REQUEST", "message": "Invalid request" } }`
+
+Validators are defined in `src/interfaces/http/validators/*.ts`.
+
+### Staff Authentication (JWT)
+
+- Header: `Authorization: Bearer <jwt>`
+- JWT is HS256-signed with `JWT_SECRET`
+- The API reads these JWT claims (`src/interfaces/http/validators/jwt.schema.ts`):
+
+```ts
+type JwtPayload = {
+  sub: string;
+  email?: string;
+  iat?: number;
+  exp?: number;
+  iss?: string;
+};
+```
+
+### Device Authentication (API Key)
+
+Device endpoints require the shared API key header:
+
+- Header name checked by code: `x-api-key`
+- Valid when header value exactly equals `DEVICE_API_KEY`
+
+### Observability (Request Logging)
+
+Global middleware in `src/interfaces/http/index.ts`:
+
+- `requestId()` sets `requestId`
+- `requestLogger` logs on completion
+
+Log payload always includes:
+
+- `requestId`, `method`, `path`, `status`, `durationMs`
+
+It may also include:
+
+- `action` (set explicitly by routes using `setAction(...)`)
+- `route` (template if available, else actual path)
+- `actorId`, `actorType` (`"user"` or `"device"`)
+- `resourceId`, `resourceType`
+
+Error handling (`app.onError`) logs:
+
+- `logger.error(...)` for status >= 500
+- `logger.warn(...)` for status < 500
 
 ---
 
-### 2. RBAC Module
+## Core Entities (Data Shapes)
 
-Purpose: Define roles/permissions and enforce access control across the API.
+These shapes are the API view shapes (what routes return), backed by the repository records.
 
-Full dynamic permission system enforced by Hono middleware and policy checks.
+### Content
 
-#### Permission Pattern
+Returned shape (`src/interfaces/http/validators/content.schema.ts`):
 
-Format: `resource:action` (e.g., `content:create`, `users:manage`)
-
-#### How It Works
-
-1. JWT middleware authenticates the request
-2. RBAC middleware loads roles/permissions from the database
-3. Policy check enforces `resource:action` rules (403 on denial)
-
-#### Routes
-
-| Method   | Endpoint                 | Description                    | Permission     |
-| -------- | ------------------------ | ------------------------------ | -------------- |
-| `GET`    | `/roles`                 | List all roles                 | `roles:read`   |
-| `POST`   | `/roles`                 | Create a role                  | `roles:create` |
-| `GET`    | `/roles/:id`             | Get role details               | `roles:read`   |
-| `PATCH`  | `/roles/:id`             | Update role                    | `roles:update` |
-| `DELETE` | `/roles/:id`             | Delete role                    | `roles:delete` |
-| `GET`    | `/roles/:id/permissions` | Get role's permissions         | `roles:read`   |
-| `PUT`    | `/roles/:id/permissions` | Set role's permissions         | `roles:update` |
-| `GET`    | `/permissions`           | List all available permissions | `roles:read`   |
-| `GET`    | `/users`                 | List all users                 | `users:read`   |
-| `POST`   | `/users`                 | Create a user                  | `users:create` |
-| `GET`    | `/users/:id`             | Get user details               | `users:read`   |
-| `PATCH`  | `/users/:id`             | Update user                    | `users:update` |
-| `DELETE` | `/users/:id`             | Delete user                    | `users:delete` |
-| `PUT`    | `/users/:id/roles`       | Assign roles to user           | `users:update` |
-
-#### Default Roles (Seed Data)
-
-| Role            | Permissions                | System |
-| --------------- | -------------------------- | ------ |
-| **Super Admin** | All `*:manage` permissions | Yes    |
-
-Seed command:
-
-```
-bun run seed:super-admin
-```
-
----
-
-### 3. Content Module
-
-Purpose: Manage media assets (upload, metadata, downloads) stored in object storage.
-
-File upload and storage using **MinIO (S3-compatible)** with server-side validation via **Zod**.
-
-#### Routes
-
-| Method   | Endpoint            | Description                | Permission       |
-| -------- | ------------------- | -------------------------- | ---------------- |
-| `POST`   | `/content`          | Upload a file              | `content:create` |
-| `GET`    | `/content`          | List content (paginated)   | `content:read`   |
-| `GET`    | `/content/:id`      | Get content details        | `content:read`   |
-| `DELETE` | `/content/:id`      | Delete content             | `content:delete` |
-| `GET`    | `/content/:id/file` | Get presigned download URL | `content:read`   |
-
-#### Upload Flow
-
-```
-1. Client sends multipart/form-data
-2. Request parsed in Hono and validated with Zod
-3. File stored in MinIO (S3-compatible client)
-4. SHA-256 checksum calculated from stream
-5. Content record created in database
-```
-
-#### Content Object
-
-```typescript
-{
+```ts
+type Content = {
   id: string;
   title: string;
   type: "IMAGE" | "VIDEO" | "PDF";
   mimeType: string;
-  fileSize: number; // bytes
-  checksum: string; // SHA-256
-  width: number | null; // pixels (images/videos)
-  height: number | null; // pixels (images/videos)
-  duration: number | null; // seconds (videos only)
-  createdAt: string; // ISO timestamp
-  createdBy: {
-    id: string;
-    name: string;
-  }
-}
+  fileSize: number;
+  checksum: string;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  createdAt: string;
+  createdBy: { id: string; name: string };
+};
 ```
 
-#### MinIO Bucket Structure
+### Playlist / Playlist Item
 
-```
-content/
-  ├── images/
-  │   └── {uuid}.{ext}
-  ├── videos/
-  │   └── {uuid}.mp4
-  └── documents/
-      └── {uuid}.pdf
-```
-
----
-
-### 4. Playlists Module
-
-Purpose: Group content into ordered playlists with per-item durations.
-
-Ordered content collections with duration per item.
-
-#### Routes
-
-| Method   | Endpoint                       | Description              | Permission         |
-| -------- | ------------------------------ | ------------------------ | ------------------ |
-| `GET`    | `/playlists`                   | List playlists           | `playlists:read`   |
-| `POST`   | `/playlists`                   | Create playlist          | `playlists:create` |
-| `GET`    | `/playlists/:id`               | Get playlist with items  | `playlists:read`   |
-| `PATCH`  | `/playlists/:id`               | Update playlist metadata | `playlists:update` |
-| `DELETE` | `/playlists/:id`               | Delete playlist          | `playlists:delete` |
-| `POST`   | `/playlists/:id/items`         | Add item to playlist     | `playlists:update` |
-| `PATCH`  | `/playlists/:id/items/:itemId` | Update item              | `playlists:update` |
-| `DELETE` | `/playlists/:id/items/:itemId` | Remove item              | `playlists:update` |
-
-#### Playlist Object
-
-```typescript
-{
-  id: string
-  name: string
-  description: string | null
-  createdAt: string
-  updatedAt: string
-  createdBy: {
-    id: string
-    name: string
-  }
-  items: PlaylistItem[]
-}
-```
-
-#### PlaylistItem Object
-
-```typescript
-{
+```ts
+type Playlist = {
   id: string;
-  sequence: number; // Order in playlist (10, 20, 30...)
-  duration: number; // Seconds to display
+  name: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: string; name: string | null };
+};
+
+type PlaylistItem = {
+  id: string;
+  sequence: number;
+  duration: number;
   content: {
     id: string;
     title: string;
     type: "IMAGE" | "VIDEO" | "PDF";
     checksum: string;
-  }
-}
+  };
+};
+
+type PlaylistWithItems = Playlist & { items: PlaylistItem[] };
 ```
 
-#### Sequencing Strategy
+### Schedule
 
-Items use explicit `sequence` integers with gaps (10, 20, 30) to allow insertion without reindexing:
-
-- Insert between 10 and 20 → new item gets sequence 15
-- Bulk reorder recalculates all sequences
-
----
-
-### 5. Schedules Module
-
-Purpose: Assign playlists to devices by time window with priority-based conflict resolution.
-
-Time-based rules assigning playlists to devices with priority-based conflict resolution.
-
-#### Routes
-
-| Method   | Endpoint         | Description          | Permission         |
-| -------- | ---------------- | -------------------- | ------------------ |
-| `GET`    | `/schedules`     | List schedules       | `schedules:read`   |
-| `POST`   | `/schedules`     | Create schedule      | `schedules:create` |
-| `GET`    | `/schedules/:id` | Get schedule details | `schedules:read`   |
-| `PATCH`  | `/schedules/:id` | Update schedule      | `schedules:update` |
-| `DELETE` | `/schedules/:id` | Delete schedule      | `schedules:delete` |
-
-#### Schedule Object
-
-```typescript
-{
-  id: string
-  name: string
-  playlistId: string
-  deviceId: string
-  startTime: string    // "HH:mm" format (e.g., "08:00")
-  endTime: string      // "HH:mm" format (e.g., "17:00")
-  daysOfWeek: number[] // [0-6], where 0=Sunday
-  priority: number     // Higher number = higher priority
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-  playlist: {
-    id: string
-    name: string
-  }
-  device: {
-    id: string
-    name: string
-  }
-}
+```ts
+type Schedule = {
+  id: string;
+  name: string;
+  playlistId: string;
+  deviceId: string;
+  startTime: string;
+  endTime: string;
+  daysOfWeek: number[];
+  priority: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  playlist: { id: string; name: string | null };
+  device: { id: string; name: string | null };
+};
 ```
 
-#### Priority Resolution
+### Device
 
-When multiple schedules match the current time for a device, the schedule with the **highest priority** wins.
-
+```ts
+type Device = {
+  id: string;
+  identifier: string;
+  name: string;
+  location: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 ```
-Example:
-  Schedule A: priority=10, "Morning Announcements"
-  Schedule B: priority=20, "Emergency Alert"
 
-  Both active at 9:00 AM → Device plays "Emergency Alert"
+### RBAC: User / Role / Permission
+
+```ts
+type User = { id: string; email: string; name: string; isActive: boolean };
+type Role = {
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+};
+type Permission = { id: string; resource: string; action: string };
 ```
 
 ---
 
-### 6. Devices Module
+## System Workflows
 
-Purpose: Register playback devices and provide the manifest they need to sync content.
+### 1) Staff Content Publishing Workflow
 
-Device registration and content manifest delivery.
+1. Staff authenticates via `POST /auth/login` and receives a JWT.
+2. Staff uploads media via `POST /content` (multipart form).
+3. Staff creates a playlist via `POST /playlists`.
+4. Staff adds playlist items via `POST /playlists/:id/items` (references existing content).
+5. Staff creates a schedule via `POST /schedules` (assign playlist to a device within time window/days/priority).
 
-#### Routes
+### 2) Device Playback Sync Workflow
 
-| Method | Endpoint                       | Description                     | Auth           |
-| ------ | ------------------------------ | ------------------------------- | -------------- |
-| `POST` | `/devices`                     | Register/re-register device     | Shared API Key |
-| `GET`  | `/devices/:id/manifest`        | Get content manifest            | Shared API Key |
-| `GET`  | `/devices/:id/active-schedule` | Get current playlist for device | Shared API Key |
-| `GET`  | `/devices`                     | List all devices                | `devices:read` |
-| `GET`  | `/devices/:id`                 | Get device details              | `devices:read` |
+1. Device registers (or updates) itself via `POST /devices` with `x-api-key`.
+2. Device fetches active schedule via `GET /devices/:id/active-schedule` (optional; returns `Schedule | null`).
+3. Device fetches manifest via `GET /devices/:id/manifest`.
+4. Device compares `playlistVersion` and/or content `checksum` values to decide what to download.
+5. Device downloads content via the manifest `downloadUrl` fields.
 
-#### Device Registration
+### 3) RBAC Administration Workflow
 
-Devices authenticate using a shared API key passed in the `X-API-Key` header.
+1. Admin (with RBAC permissions) manages roles via `/roles...`.
+2. Admin manages permissions assignments via `/roles/:id/permissions`.
+3. Admin manages users via `/users...` and assigns roles via `/users/:id/roles`.
 
-```typescript
-// Registration Request
-POST /devices
-Headers: { "X-API-Key": "shared-secret-key" }
-Body: {
-  identifier: string  // Hardware ID (MAC address, serial, etc.)
-  name: string        // Display name
-  location?: string   // Physical location
-}
+---
 
-// Registration Response
+## Modules
+
+## Health
+
+### GET `/`
+
+Public health check.
+
+Response 200:
+
+```json
+{ "status": "ok" }
+```
+
+---
+
+## Auth Module
+
+Router: `src/interfaces/http/routes/auth.route.ts` mounted at `/auth`.
+
+### Purpose
+
+Authenticate staff users and issue JWTs.
+
+### Credential Source
+
+- Password hashes are loaded from the htshadow file at `HTSHADOW_PATH`.
+- File format is line-based: `email:hash`
+- Hash verification uses bcrypt, with `$2y$` normalized to `$2b$`.
+
+### Token TTL
+
+Configured in `src/interfaces/http/index.ts`:
+
+- `tokenTtlSeconds = 60 * 60` (1 hour)
+
+### Endpoints
+
+#### POST `/auth/login` (Public)
+
+Request body (`src/interfaces/http/validators/auth.schema.ts`):
+
+```json
+{ "email": "user@example.com", "password": "..." }
+```
+
+Success 200:
+
+```json
 {
-  id: string
-  identifier: string
-  name: string
-  location: string | null
+  "type": "bearer",
+  "token": "<jwt>",
+  "expiresAt": "2026-01-23T12:34:56.000Z",
+  "user": { "id": "<uuid>", "email": "user@example.com", "name": "..." }
 }
 ```
 
-#### Content Manifest
+Error:
 
-The manifest contains everything a device needs to sync and play content.
+- 400 invalid request
+- 401 invalid credentials
 
-```typescript
-GET /devices/:id/manifest
-Headers: { "X-API-Key": "shared-secret-key" }
+Notes:
 
-// Response
+- The user must exist in DB (`users`) AND be `isActive=true`, even if the htshadow credentials match.
+
+#### GET `/auth/me` (JWT required)
+
+Behavior:
+
+- Validates JWT
+- Loads user by `sub` and requires `isActive=true`
+- Issues a fresh JWT (sliding session behavior)
+
+Success 200: same shape as `/auth/login`.
+
+Error:
+
+- 401 invalid token / inactive user
+
+#### POST `/auth/logout` (JWT required)
+
+Behavior:
+
+- No-op logout (returns 204; there is no token revocation list).
+
+Success 204, empty body.
+
+---
+
+## RBAC Module
+
+Router: `src/interfaces/http/routes/rbac.route.ts` mounted at `/` (root).
+
+### Purpose
+
+Enforce authorization for staff endpoints via permission checks.
+
+### Permission Model
+
+Permission strings are `resource:action` (example: `playlists:read`).
+
+Matching rules (`src/domain/rbac/permission.ts`):
+
+- Resource matches if equal or stored resource is `"*"`
+- Action matches if equal, OR stored action is `"manage"` (wildcard for actions)
+- Example: `"*:manage"` grants all permissions
+
+### Seed: Super Admin Role
+
+A built-in seed exists (`src/application/use-cases/rbac/seed-super-admin.use-case.ts`):
+
+- Role name: `"Super Admin"` (isSystem=true)
+- Permission: `{ resource: "*", action: "manage" }`
+- Ensures the role has that permission assigned
+
+Run via: `bun run seed:super-admin` (script wiring is in repo tooling; this doc only specifies the behavior).
+
+### Endpoints (JWT + permission required)
+
+All RBAC endpoints use `authorize("<permission>")`, which means:
+
+- JWT is required
+- Permission is evaluated via DB joins (user_roles -> role_permissions -> permissions)
+
+#### Roles
+
+- GET `/roles` requires `roles:read`
+  - Response 200: `Role[]`
+
+- POST `/roles` requires `roles:create`
+  - Body:
+    ```json
+    { "name": "...", "description": "..." }
+    ```
+  - Response 201: `Role`
+
+- GET `/roles/:id` requires `roles:read`
+  - Response 200: `Role`
+  - 404 if missing
+
+- PATCH `/roles/:id` requires `roles:update`
+  - Body:
+    ```json
+    { "name": "...", "description": "..." }
+    ```
+  - Response 200: `Role`
+
+- DELETE `/roles/:id` requires `roles:delete`
+  - Response 204
+
+- GET `/roles/:id/permissions` requires `roles:read`
+  - Response 200: `Permission[]`
+
+- PUT `/roles/:id/permissions` requires `roles:update`
+  - Body:
+    ```json
+    { "permissionIds": ["..."] }
+    ```
+  - Response 200: `Permission[]` (resolved records for provided ids)
+
+#### Permissions
+
+- GET `/permissions` requires `roles:read`
+  - Response 200: `Permission[]`
+
+#### Users
+
+- GET `/users` requires `users:read`
+  - Response 200: `User[]`
+
+- POST `/users` requires `users:create`
+  - Body:
+    ```json
+    { "email": "user@example.com", "name": "...", "isActive": true }
+    ```
+  - Response 201: `User`
+
+- GET `/users/:id` requires `users:read`
+  - Response 200: `User`
+
+- PATCH `/users/:id` requires `users:update`
+  - Body:
+    ```json
+    { "email": "user@example.com", "name": "...", "isActive": true }
+    ```
+  - Response 200: `User`
+
+- DELETE `/users/:id` requires `users:delete`
+  - Response 204
+
+- PUT `/users/:id/roles` requires `users:update`
+  - Body:
+    ```json
+    { "roleIds": ["..."] }
+    ```
+  - Response 200: `Role[]`
+
+---
+
+## Content Module
+
+Router: `src/interfaces/http/routes/content.route.ts` mounted at `/content`.
+
+### Purpose
+
+Upload, list, inspect, delete, and obtain download URLs for media.
+
+### Supported MIME Types
+
+Determined by `src/domain/content/content.ts`:
+
+- Images: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+- Video: `video/mp4`
+- Document: `application/pdf`
+
+### Storage Behavior
+
+File key is generated as:
+
+- `content/images/<uuid>.<ext>`
+- `content/videos/<uuid>.<ext>`
+- `content/documents/<uuid>.<ext>`
+
+The file is uploaded to S3/MinIO and the DB record stores:
+
+- `fileKey`
+- `checksum` = sha256 hex of the full file bytes
+
+Important: width/height/duration fields exist but are currently stored as `null` (no server-side inspection).
+
+### Authentication / Authorization
+
+All `/content` endpoints require:
+
+- JWT (Bearer token)
+- Permission:
+  - `content:create`
+  - `content:read`
+  - `content:delete`
+
+### Endpoints
+
+#### POST `/content` (JWT + `content:create`)
+
+Request:
+
+- `multipart/form-data` with:
+  - `title`: string
+  - `file`: binary file
+- Max upload size enforced by:
+  - `CONTENT_MAX_UPLOAD_BYTES` (default 100 MiB)
+  - `bodyLimit({ maxSize: ... })`
+
+Response 201: `Content`
+
+Errors:
+
+- 400 invalid request / unsupported type
+- 401/403 auth failures
+- 404 if the authenticated user id does not exist in DB (`"User not found"`)
+
+#### GET `/content` (JWT + `content:read`)
+
+Query:
+
+- `page` (int, min 1, default 1)
+- `pageSize` (int, min 1, max 100, default 20)
+
+Response 200:
+
+```json
+{ "items": [Content], "page": 1, "pageSize": 20, "total": 123 }
+```
+
+#### GET `/content/:id` (JWT + `content:read`)
+
+Param:
+
+- `id` must be UUID
+
+Response 200: `Content`
+
+404 if missing.
+
+#### DELETE `/content/:id` (JWT + `content:delete`)
+
+Behavior:
+
+1. Loads content record
+2. Deletes object from storage by `fileKey`
+3. Deletes DB row
+
+Response 204, empty body.
+
+#### GET `/content/:id/file` (JWT + `content:read`)
+
+Response 200:
+
+```json
+{ "downloadUrl": "https://..." }
+```
+
+The presigned URL expires after the configured TTL:
+
+- in `src/interfaces/http/index.ts`: `downloadUrlExpiresInSeconds = 60 * 60` (1 hour)
+
+---
+
+## Playlists Module
+
+Router: `src/interfaces/http/routes/playlists.route.ts` mounted at `/playlists`.
+
+### Purpose
+
+Manage playlists and their ordered items.
+
+### Validation Rules
+
+From `src/domain/playlists/playlist.ts`:
+
+- `sequence` must be a positive integer
+- `duration` must be a positive integer
+
+Note: the API requires clients to provide `sequence`; it does not auto-assign it (even though `nextSequence(...)` exists as a helper).
+
+### Authentication / Authorization
+
+JWT + permission required:
+
+- `playlists:read`
+- `playlists:create`
+- `playlists:update`
+- `playlists:delete`
+
+### Observability Actions
+
+These endpoints set `action`:
+
+- `playlists.list`
+- `playlists.create`
+- `playlists.get`
+- `playlists.update`
+- `playlists.delete`
+- `playlists.item.add`
+- `playlists.item.update`
+- `playlists.item.delete`
+
+### Endpoints
+
+#### GET `/playlists` (JWT + `playlists:read`)
+
+Response 200:
+
+```json
+{ "items": [Playlist] }
+```
+
+#### POST `/playlists` (JWT + `playlists:create`)
+
+Body:
+
+```json
+{ "name": "...", "description": "..." }
+```
+
+Response 201: `Playlist`
+
+#### GET `/playlists/:id` (JWT + `playlists:read`)
+
+Response 200: `PlaylistWithItems`
+
+404 if playlist missing.
+Also returns 404 if any referenced content for an item is missing (`"Content not found"`).
+
+#### PATCH `/playlists/:id` (JWT + `playlists:update`)
+
+Body:
+
+```json
+{ "name": "...", "description": "..." }
+```
+
+Response 200: `Playlist`
+
+#### DELETE `/playlists/:id` (JWT + `playlists:delete`)
+
+Response 204
+
+#### POST `/playlists/:id/items` (JWT + `playlists:update`)
+
+Body:
+
+```json
+{ "contentId": "<uuid>", "sequence": 10, "duration": 15 }
+```
+
+Response 201: `PlaylistItem`
+
+Errors:
+
+- 400 if sequence/duration invalid
+- 404 if playlist or content missing
+
+#### PATCH `/playlists/:id/items/:itemId` (JWT + `playlists:update`)
+
+Body:
+
+```json
+{ "sequence": 20, "duration": 10 }
+```
+
+Response 200: `PlaylistItem`
+
+Errors:
+
+- 400 if sequence/duration invalid
+- 404 if item or content missing
+
+#### DELETE `/playlists/:id/items/:itemId` (JWT + `playlists:update`)
+
+Response 204
+
+---
+
+## Schedules Module
+
+Router: `src/interfaces/http/routes/schedules.route.ts` mounted at `/schedules`.
+
+### Purpose
+
+Assign a playlist to a device for specific days/time windows, with conflict resolution via priority.
+
+### Authentication / Authorization
+
+JWT + permission required:
+
+- `schedules:read`
+- `schedules:create`
+- `schedules:update`
+- `schedules:delete`
+
+### Observability Actions
+
+- `schedules.list`
+- `schedules.create`
+- `schedules.get`
+- `schedules.update`
+- `schedules.delete`
+
+### Schedule Validation
+
+Use case validation (`src/application/use-cases/schedules/schedule.use-cases.ts`) enforces:
+
+- `startTime` and `endTime` must match `HH:mm` (24h clock)
+- `daysOfWeek` must be non-empty and each element must be an integer `0..6`
+
+If invalid, the use case throws an `Error("Invalid time range")` or `Error("Invalid days of week")`, and the route maps it to:
+
+- 400 `INVALID_REQUEST` with the thrown message
+
+### Active Schedule Selection Rules (Critical)
+
+Selection is implemented in `src/domain/schedules/schedule.ts`:
+
+Given a device's schedules and a `now: Date`, the system:
+
+1. Filters to schedules with `isActive === true`
+2. Filters to schedules where `daysOfWeek` includes `now.getDay()`
+3. Filters to schedules where `now` is within the schedule's time window using `isWithinTimeWindow(...)`
+4. Sorts by `priority` descending and picks the first
+
+Time window behavior:
+
+- Time window is evaluated using:
+  - `time = now.toISOString().slice(11, 16)` (UTC "HH:mm")
+- If `startTime === endTime`, the schedule is never active.
+- If `startTime < endTime`, window is inclusive: `start <= time <= end`
+- If `startTime > endTime`, the window wraps across midnight: `time >= start OR time <= end`
+
+Note: day-of-week is taken from `now.getDay()` (runtime-local), while the time string is derived from UTC via `toISOString()`. If the server timezone is not UTC, this mismatch can affect schedule selection; this is the current behavior.
+
+### Endpoints
+
+#### GET `/schedules` (JWT + `schedules:read`)
+
+Response 200:
+
+```json
+{ "items": [Schedule] }
+```
+
+#### POST `/schedules` (JWT + `schedules:create`)
+
+Body:
+
+```json
 {
-  playlistId: string | null
-  playlistVersion: string      // Hash for cache invalidation
-  generatedAt: string          // ISO timestamp
-  items: [{
-    id: string
-    sequence: number
-    duration: number           // Seconds to display
+  "name": "...",
+  "playlistId": "<uuid>",
+  "deviceId": "<uuid>",
+  "startTime": "08:00",
+  "endTime": "17:00",
+  "daysOfWeek": [1, 2, 3, 4, 5],
+  "priority": 10,
+  "isActive": true
+}
+```
+
+Response 201: `Schedule`
+
+404 if playlist/device missing.
+
+#### GET `/schedules/:id` (JWT + `schedules:read`)
+
+Response 200: `Schedule`
+404 if missing.
+
+#### PATCH `/schedules/:id` (JWT + `schedules:update`)
+
+Body: same fields as create, all optional.
+
+Response 200: `Schedule`
+
+#### DELETE `/schedules/:id` (JWT + `schedules:delete`)
+
+Response 204
+
+---
+
+## Devices Module
+
+Router: `src/interfaces/http/routes/devices.route.ts` mounted at `/devices`.
+
+### Purpose
+
+- Register devices (by stable `identifier`)
+- Provide device inventory endpoints for staff
+- Provide device polling endpoints (active schedule + manifest)
+
+### Authentication / Authorization
+
+There are two access modes:
+
+1. Device mode (shared API key):
+
+- `POST /devices`
+- `GET /devices/:id/active-schedule`
+- `GET /devices/:id/manifest`
+
+2. Staff mode (JWT + RBAC permission):
+
+- `GET /devices` requires `devices:read`
+- `GET /devices/:id` requires `devices:read`
+
+### Observability Actions
+
+- `devices.register`
+- `devices.list`
+- `devices.get`
+- `devices.activeSchedule.read`
+- `devices.manifest.read`
+
+These actions also set `actorType` to `"device"` for device-authenticated endpoints.
+
+### Device Registration Behavior
+
+Registration is idempotent by `identifier` (`src/application/use-cases/devices/device.use-cases.ts`):
+
+- If a device with the given identifier exists:
+  - Update its `name` and `location`
+- Else:
+  - Create a new device record
+
+Both `name` and `identifier` are trimmed; empty values are rejected.
+
+### Endpoints
+
+#### POST `/devices` (Device API key required)
+
+Headers:
+
+- `x-api-key: <DEVICE_API_KEY>`
+
+Body:
+
+```json
+{ "identifier": "...", "name": "...", "location": "..." }
+```
+
+Response 200: `Device` (created or updated)
+
+Errors:
+
+- 401 if API key missing/invalid
+- 400 if request invalid or name/identifier empty after trimming
+
+#### GET `/devices` (JWT + `devices:read`)
+
+Response 200:
+
+```json
+{ "items": [Device] }
+```
+
+#### GET `/devices/:id` (JWT + `devices:read`)
+
+Response 200: `Device`
+404 if missing.
+
+#### GET `/devices/:id/active-schedule` (Device API key required)
+
+Headers:
+
+- `x-api-key: <DEVICE_API_KEY>`
+
+Response 200:
+
+- `Schedule` when a schedule is active
+- `null` when no schedule is active
+
+404 if device missing.
+
+Selection uses the "Active Schedule Selection Rules" described in the Schedules module.
+
+#### GET `/devices/:id/manifest` (Device API key required)
+
+Headers:
+
+- `x-api-key: <DEVICE_API_KEY>`
+
+Response 200 (`src/interfaces/http/validators/devices.schema.ts`):
+
+```ts
+type DeviceManifest = {
+  playlistId: string | null;
+  playlistVersion: string;
+  generatedAt: string;
+  items: Array<{
+    id: string;
+    sequence: number;
+    duration: number;
     content: {
-      id: string
-      type: 'IMAGE' | 'VIDEO' | 'PDF'
-      checksum: string         // SHA-256 for local cache check
-      downloadUrl: string      // Presigned URL (1 hour expiry)
-      mimeType: string
-      width: number | null
-      height: number | null
-      duration: number | null  // Video duration
+      id: string;
+      type: "IMAGE" | "VIDEO" | "PDF";
+      checksum: string;
+      downloadUrl: string;
+      mimeType: string;
+      width: number | null;
+      height: number | null;
+      duration: number | null;
+    };
+  }>;
+};
+```
+
+Manifest generation (`src/application/use-cases/devices/device.use-cases.ts`):
+
+- If no active schedule:
+  - `playlistId: null`
+  - `playlistVersion: ""`
+  - `items: []`
+  - `generatedAt: now.toISOString()`
+- Else:
+  - Loads playlist items ordered by `sequence` ascending
+  - Loads each referenced content record
+  - Generates a presigned download URL per content (`expiresInSeconds = 60*60` from `src/interfaces/http/index.ts`)
+  - Computes `playlistVersion` as sha256 hex of this JSON payload:
+
+```json
+{
+  "playlistId": "<playlistId>",
+  "items": [
+    {
+      "id": "<playlistItemId>",
+      "sequence": 10,
+      "duration": 15,
+      "contentId": "<contentId>",
+      "checksum": "<sha256>"
     }
-  }]
+  ]
 }
 ```
 
-#### Device Sync Flow
+404 cases:
 
-```
-1. Device boots, calls /devices/register with identifier
-2. Device receives device ID
-3. Device polls /devices/:id/manifest periodically (e.g., every 60s)
-4. Device compares checksums with local cache
-5. Device downloads only changed/new content
-6. Device plays playlist items in sequence order
-7. Repeat from step 3
-```
+- 404 if device missing
+- 404 if playlist/content referenced by the active schedule/items is missing
 
 ---
 
-## Database Schema
+## OpenAPI + API Reference UI (Non-production only)
 
-Drizzle ORM schema (MySQL).
+Enabled when `NODE_ENV !== "production"` (`src/interfaces/http/index.ts`):
 
-```typescript
-import {
-  mysqlTable,
-  varchar,
-  text,
-  int,
-  boolean,
-  timestamp,
-  json,
-  primaryKey,
-} from "drizzle-orm/mysql-core";
-
-// ===========================================
-// AUTH & RBAC
-// ===========================================
-
-export const users = mysqlTable("users", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  email: varchar("email", { length: 255 }).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const roles = mysqlTable("roles", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  name: varchar("name", { length: 120 }).notNull(),
-  description: text("description"),
-  isSystem: boolean("is_system").notNull().default(false),
-});
-
-export const permissions = mysqlTable("permissions", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  resource: varchar("resource", { length: 120 }).notNull(),
-  action: varchar("action", { length: 120 }).notNull(),
-});
-
-export const userRoles = mysqlTable(
-  "user_roles",
-  {
-    userId: varchar("user_id", { length: 36 }).notNull(),
-    roleId: varchar("role_id", { length: 36 }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.userId, table.roleId] })],
-);
-
-export const rolePermissions = mysqlTable(
-  "role_permissions",
-  {
-    roleId: varchar("role_id", { length: 36 }).notNull(),
-    permissionId: varchar("permission_id", { length: 36 }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
-);
-
-// ===========================================
-// CONTENT
-// ===========================================
-
-export const content = mysqlTable("content", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  title: varchar("title", { length: 255 }).notNull(),
-  type: varchar("type", { length: 16 }).notNull(), // IMAGE | VIDEO | PDF
-  fileKey: varchar("file_key", { length: 512 }).notNull(),
-  checksum: varchar("checksum", { length: 128 }).notNull(),
-  mimeType: varchar("mime_type", { length: 120 }).notNull(),
-  fileSize: int("file_size").notNull(),
-  width: int("width"),
-  height: int("height"),
-  duration: int("duration"),
-  createdById: varchar("created_by_id", { length: 36 }).notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// ===========================================
-// PLAYLISTS
-// ===========================================
-
-export const playlists = mysqlTable("playlists", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  description: text("description"),
-  createdById: varchar("created_by_id", { length: 36 }).notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const playlistItems = mysqlTable("playlist_items", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  playlistId: varchar("playlist_id", { length: 36 }).notNull(),
-  contentId: varchar("content_id", { length: 36 }).notNull(),
-  sequence: int("sequence").notNull(),
-  duration: int("duration").notNull(),
-});
-
-// ===========================================
-// DEVICES
-// ===========================================
-
-export const devices = mysqlTable("devices", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  identifier: varchar("identifier", { length: 255 }).notNull(),
-  location: varchar("location", { length: 255 }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-// ===========================================
-// SCHEDULES
-// ===========================================
-
-export const schedules = mysqlTable("schedules", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  playlistId: varchar("playlist_id", { length: 36 }).notNull(),
-  deviceId: varchar("device_id", { length: 36 }).notNull(),
-  startTime: varchar("start_time", { length: 5 }).notNull(), // "HH:mm"
-  endTime: varchar("end_time", { length: 5 }).notNull(), // "HH:mm"
-  daysOfWeek: json("days_of_week").notNull(), // [0-6], where 0=Sunday
-  priority: int("priority").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-```
+- GET `/openapi.json`
+- GET `/docs` (Scalar UI, pointing to `/openapi.json`)
 
 ---
 
-## API Endpoints Summary
-
-| Module        | Count  | Endpoints                                            |
-| ------------- | ------ | ---------------------------------------------------- |
-| **Auth**      | 3      | login, logout, me                                    |
-| **RBAC**      | 14     | roles CRUD, permissions, users CRUD, role assignment |
-| **Content**   | 5      | upload, list, get, delete, download                  |
-| **Playlists** | 8      | CRUD, item management                                |
-| **Schedules** | 5      | CRUD                                                 |
-| **Devices**   | 5      | create, manifest, active-schedule, list, get         |
-| **Total**     | **40** |                                                      |
-
----
-
-## Display Settings Reference
-
-> **Note**: These settings are handled by the **frontend/client**, not stored in the backend database. Documented here for integration reference.
-
-### Universal Settings (All Content Types)
-
-| Setting   | Type | Default   | Description                 |
-| --------- | ---- | --------- | --------------------------- |
-| `fitMode` | enum | `CONTAIN` | How content fits the screen |
-
-**Fit Mode Options**:
-
-- `CONTAIN` - Fit within bounds, preserve aspect ratio (letterbox)
-- `COVER` - Fill bounds, crop if needed
-- `FILL` - Stretch to fill (may distort)
-
-### Image-Specific Settings
-
-| Setting           | Type    | Default  | Description                           |
-| ----------------- | ------- | -------- | ------------------------------------- |
-| `scrollEnabled`   | boolean | `false`  | Enable scrolling for oversized images |
-| `scrollDirection` | enum    | `UP`     | Scroll direction                      |
-| `scrollSpeed`     | enum    | `MEDIUM` | Scroll speed                          |
-
-**Scroll Direction Options**: `UP`, `DOWN`, `LEFT`, `RIGHT`
-**Scroll Speed Options**: `SLOW`, `MEDIUM`, `FAST`
-
-### Video-Specific Settings
-
-| Setting | Type    | Default | Description         |
-| ------- | ------- | ------- | ------------------- |
-| `muted` | boolean | `false` | Mute video audio    |
-| `loop`  | boolean | `false` | Loop video playback |
-
-### Transition Settings
-
-| Setting         | Type | Default | Description      |
-| --------------- | ---- | ------- | ---------------- |
-| `transitionIn`  | enum | `NONE`  | Entry transition |
-| `transitionOut` | enum | `NONE`  | Exit transition  |
-
-**Transition Options**: `NONE`, `FADE`
-
-### Future Implementation
-
-If display settings need to be stored in the backend, add these fields to the `playlist_items` table:
-
-```typescript
-import { boolean, mysqlTable, varchar } from "drizzle-orm/mysql-core";
-
-export const playlistItems = mysqlTable("playlist_items", {
-  // ... existing fields
-
-  // Display settings (optional future addition)
-  fitMode: varchar("fit_mode", { length: 16 }),
-  scrollEnabled: boolean("scroll_enabled"),
-  scrollDirection: varchar("scroll_direction", { length: 8 }),
-  scrollSpeed: varchar("scroll_speed", { length: 8 }),
-  muted: boolean("muted"),
-  loop: boolean("loop"),
-  transitionIn: varchar("transition_in", { length: 8 }),
-  transitionOut: varchar("transition_out", { length: 8 }),
-});
-```
-
----
-
-## Environment Variables
+## Environment Variables (Exact, from `src/env.ts`)
 
 ```env
-# Application
-NODE_ENV=development
+# Server
 PORT=3000
+NODE_ENV=development
 
-# Database (MySQL)
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=signage
-DB_PASSWORD=signage
-DB_DATABASE=signage
+# Database
+DATABASE_URL=...
+MYSQL_ROOT_PASSWORD=...
+MYSQL_HOST=...
+MYSQL_PORT=3306
+MYSQL_DATABASE=...
+MYSQL_USER=...
+MYSQL_PASSWORD=...
 
-# Auth
-JWT_SECRET=your-jwt-secret
+# MinIO / S3-compatible storage
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_CONSOLE_PORT=9001
+MINIO_USE_SSL=false
+MINIO_BUCKET=content
+MINIO_REGION=us-east-1
+CONTENT_MAX_UPLOAD_BYTES=104857600
 
-# Drive (MinIO/S3)
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET=content
-S3_REGION=us-east-1
-S3_FORCE_PATH_STYLE=true
+# Auth (staff)
+HTSHADOW_PATH=/etc/htshadow
+JWT_SECRET=...
+JWT_ISSUER=...
 
-# Device API
-DEVICE_API_KEY=shared-device-secret-key
+# Logging
+LOG_LEVEL=info
+LOG_PRETTY=true
 
-# DCISM Auth
-HTPASSWD_PATH=/etc/example_htshadow
+# Devices
+DEVICE_API_KEY=...
 ```
-
----
-
-## Docker Compose (Development)
-
-```yaml
-version: "3.8"
-
-services:
-  api:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=mysql://signage:signage@mysql:3306/signage
-      - S3_ENDPOINT=minio
-    depends_on:
-      - mysql
-      - minio
-    volumes:
-      - .:/app
-      - /app/node_modules
-
-  mysql:
-    image: mysql:8
-    environment:
-      MYSQL_DATABASE: signage
-      MYSQL_USER: signage
-      MYSQL_PASSWORD: signage
-      MYSQL_ROOT_PASSWORD: signage
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-
-volumes:
-  mysql_data:
-  minio_data:
-```
-
----
-
-## Quick Reference
-
-### Key Decisions
-
-| Decision             | Choice                  | Rationale                                  |
-| -------------------- | ----------------------- | ------------------------------------------ |
-| What gets scheduled? | Playlists               | Same content can be in multiple playlists  |
-| Auth strategy        | JWT, 60m sliding expiry | Simple, stateless, sufficient for capstone |
-| RBAC                 | Dynamic permissions     | Required for flexible access control       |
-| Content processing   | None (pre-optimized)    | Reduces complexity, meets timeline         |
-| Display settings     | Frontend handles        | Backend stays simple                       |
-| Device sync          | Polling + checksums     | Reliable, simple to implement              |
-
-### Common Operations
-
-```bash
-# Start development server
-bun run dev
-
-# Run tests
-bun test
-
-# Run database migrations (Drizzle Kit)
-bunx drizzle-kit migrate
-
-# View API documentation (Scalar)
-open http://localhost:3000/docs
-```
-
----
-
-_This specification is scoped for a 1-2 month capstone project. Features are intentionally simplified to ensure completion within the timeline while demonstrating core functionality._
