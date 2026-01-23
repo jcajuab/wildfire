@@ -1,0 +1,91 @@
+import { desc, eq } from "drizzle-orm";
+import {
+  type DeviceRecord,
+  type DeviceRepository,
+} from "#/application/ports/devices";
+import { db } from "#/infrastructure/db/client";
+import { devices } from "#/infrastructure/db/schema/device.sql";
+
+const toRecord = (row: typeof devices.$inferSelect): DeviceRecord => ({
+  id: row.id,
+  name: row.name,
+  identifier: row.identifier,
+  location: row.location ?? null,
+  createdAt:
+    row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+  updatedAt:
+    row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
+});
+
+export class DeviceDbRepository implements DeviceRepository {
+  async list(): Promise<DeviceRecord[]> {
+    const rows = await db
+      .select()
+      .from(devices)
+      .orderBy(desc(devices.createdAt));
+    return rows.map(toRecord);
+  }
+
+  async findById(id: string): Promise<DeviceRecord | null> {
+    const rows = await db
+      .select()
+      .from(devices)
+      .where(eq(devices.id, id))
+      .limit(1);
+    return rows[0] ? toRecord(rows[0]) : null;
+  }
+
+  async findByIdentifier(identifier: string): Promise<DeviceRecord | null> {
+    const rows = await db
+      .select()
+      .from(devices)
+      .where(eq(devices.identifier, identifier))
+      .limit(1);
+    return rows[0] ? toRecord(rows[0]) : null;
+  }
+
+  async create(input: {
+    name: string;
+    identifier: string;
+    location: string | null;
+  }): Promise<DeviceRecord> {
+    const id = crypto.randomUUID();
+    await db.insert(devices).values({
+      id,
+      name: input.name,
+      identifier: input.identifier,
+      location: input.location,
+    });
+
+    const record = await this.findById(id);
+    if (!record) {
+      throw new Error("Failed to load created device record");
+    }
+    return record;
+  }
+
+  async update(
+    id: string,
+    input: { name?: string; location?: string | null },
+  ): Promise<DeviceRecord | null> {
+    const existing = await this.findById(id);
+    if (!existing) return null;
+
+    const next = {
+      name: input.name ?? existing.name,
+      location: input.location ?? existing.location,
+    };
+
+    await db
+      .update(devices)
+      .set({
+        name: next.name,
+        location: next.location,
+        updatedAt: new Date(),
+      })
+      .where(eq(devices.id, id));
+
+    const updated = await this.findById(id);
+    return updated ?? { ...existing, ...next, updatedAt: existing.updatedAt };
+  }
+}

@@ -1,0 +1,192 @@
+import { describe, expect, test } from "bun:test";
+import { Hono } from "hono";
+import { type ContentRecord } from "#/application/ports/content";
+import { Permission } from "#/domain/rbac/permission";
+import { JwtTokenIssuer } from "#/infrastructure/auth/jwt";
+import { createPlaylistsRouter } from "#/interfaces/http/routes/playlists.route";
+
+const tokenIssuer = new JwtTokenIssuer({ secret: "test-secret" });
+const parseJson = async <T>(response: Response) => (await response.json()) as T;
+const playlistId = "b2c4a3f1-6b18-4f90-9d9b-9e1a2f0d9d45";
+const contentId = "9c7b2f9a-2f5d-4bd9-9c9e-1f0c1d9b8c7a";
+
+const makeApp = async (permissions: string[]) => {
+  const app = new Hono();
+  const playlists: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    createdById: string;
+    createdAt: string;
+    updatedAt: string;
+  }> = [];
+  const items: Array<{
+    id: string;
+    playlistId: string;
+    contentId: string;
+    sequence: number;
+    duration: number;
+  }> = [];
+  const contents: ContentRecord[] = [
+    {
+      id: contentId,
+      title: "Welcome",
+      type: "IMAGE",
+      fileKey: "content/images/a.png",
+      checksum: "abc",
+      mimeType: "image/png",
+      fileSize: 100,
+      width: 10,
+      height: 10,
+      duration: null,
+      createdById: "user-1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+    },
+  ];
+
+  const router = createPlaylistsRouter({
+    jwtSecret: "test-secret",
+    repositories: {
+      playlistRepository: {
+        list: async () => [...playlists],
+        findById: async (id: string) =>
+          playlists.find((item) => item.id === id) ?? null,
+        create: async (input) => {
+          const record = {
+            id: playlistId,
+            name: input.name,
+            description: input.description,
+            createdById: input.createdById,
+            createdAt: "2025-01-01T00:00:00.000Z",
+            updatedAt: "2025-01-01T00:00:00.000Z",
+          };
+          playlists.push(record);
+          return record;
+        },
+        update: async () => null,
+        delete: async () => false,
+        listItems: async (playlistId: string) =>
+          items.filter((item) => item.playlistId === playlistId),
+        addItem: async (input) => {
+          const record = {
+            id: `item-${items.length + 1}`,
+            ...input,
+          };
+          items.push(record);
+          return record;
+        },
+        updateItem: async () => null,
+        deleteItem: async () => false,
+      },
+      contentRepository: {
+        findById: async (id: string) =>
+          contents.find((content) => content.id === id) ?? null,
+        create: async () => {
+          throw new Error("not used");
+        },
+        list: async () => ({ items: [], total: 0 }),
+        delete: async () => false,
+      },
+      userRepository: {
+        list: async () => [],
+        findById: async () => ({
+          id: "user-1",
+          email: "user@example.com",
+          name: "User",
+          isActive: true,
+        }),
+        findByIds: async () => [
+          {
+            id: "user-1",
+            email: "user@example.com",
+            name: "User",
+            isActive: true,
+          },
+        ],
+        findByEmail: async () => null,
+        create: async () => {
+          throw new Error("not used");
+        },
+        update: async () => null,
+        delete: async () => false,
+      },
+      authorizationRepository: {
+        findPermissionsForUser: async () =>
+          permissions.map((permission) => Permission.parse(permission)),
+      },
+    },
+  });
+
+  app.route("/playlists", router);
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const issueToken = async () =>
+    tokenIssuer.issueToken({
+      subject: "user-1",
+      email: "user@example.com",
+      issuedAt: nowSeconds,
+      expiresAt: nowSeconds + 3600,
+      issuer: undefined,
+    });
+
+  return { app, issueToken, playlists };
+};
+
+describe("Playlists routes", () => {
+  test("GET /playlists returns list with permission", async () => {
+    const { app, issueToken } = await makeApp(["playlists:read"]);
+    const token = await issueToken();
+
+    const response = await app.request("/playlists", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  test("POST /playlists creates playlist", async () => {
+    const { app, issueToken } = await makeApp(["playlists:create"]);
+    const token = await issueToken();
+
+    const response = await app.request("/playlists", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "Morning" }),
+    });
+
+    expect(response.status).toBe(201);
+    const json = await parseJson<{ id: string }>(response);
+    expect(json.id).toBeDefined();
+  });
+
+  test("POST /playlists/:id/items adds item", async () => {
+    const { app, issueToken, playlists } = await makeApp(["playlists:update"]);
+    playlists.push({
+      id: playlistId,
+      name: "Morning",
+      description: null,
+      createdById: "user-1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    });
+    const token = await issueToken();
+
+    const response = await app.request(`/playlists/${playlistId}/items`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contentId,
+        sequence: 10,
+        duration: 5,
+      }),
+    });
+
+    expect(response.status).toBe(201);
+  });
+});

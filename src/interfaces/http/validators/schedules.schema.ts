@@ -1,0 +1,53 @@
+import { z } from "zod";
+
+export const scheduleSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  playlistId: z.string(),
+  deviceId: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  daysOfWeek: z.array(z.number().int()),
+  priority: z.number().int(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  playlist: z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+  }),
+  device: z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+  }),
+});
+
+export const scheduleListResponseSchema = z.object({
+  items: z.array(scheduleSchema),
+});
+
+export const scheduleIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const createScheduleSchema = z.object({
+  name: z.string().min(1),
+  playlistId: z.string().uuid(),
+  deviceId: z.string().uuid(),
+  startTime: z.string().min(1),
+  endTime: z.string().min(1),
+  daysOfWeek: z.array(z.number().int()).min(1),
+  priority: z.number().int(),
+  isActive: z.boolean().optional().default(true),
+});
+
+export const updateScheduleSchema = z.object({
+  name: z.string().min(1).optional(),
+  playlistId: z.string().uuid().optional(),
+  deviceId: z.string().uuid().optional(),
+  startTime: z.string().min(1).optional(),
+  endTime: z.string().min(1).optional(),
+  daysOfWeek: z.array(z.number().int()).min(1).optional(),
+  priority: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});

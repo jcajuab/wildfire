@@ -34,6 +34,7 @@ export const env = createEnv({
     JWT_ISSUER: z.string().optional(),
     LOG_LEVEL: z.string().default("info"),
     LOG_PRETTY: z.coerce.boolean().default(true),
+    DEVICE_API_KEY: z.string().default("device-api-key"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

@@ -1,28 +1,264 @@
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
+import { type DeviceRepository } from "#/application/ports/devices";
+import { type PlaylistRepository } from "#/application/ports/playlists";
+import { type AuthorizationRepository } from "#/application/ports/rbac";
+import { type ScheduleRepository } from "#/application/ports/schedules";
 import {
+  CreateScheduleUseCase,
+  DeleteScheduleUseCase,
+  GetScheduleUseCase,
+  ListSchedulesUseCase,
+  NotFoundError,
+  UpdateScheduleUseCase,
+} from "#/application/use-cases/schedules";
+import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
+import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
+import {
+  badRequest,
   errorResponseSchema,
-  notImplemented,
+  notFound,
 } from "#/interfaces/http/responses";
+import {
+  createScheduleSchema,
+  scheduleIdParamSchema,
+  scheduleListResponseSchema,
+  scheduleSchema,
+  updateScheduleSchema,
+} from "#/interfaces/http/validators/schedules.schema";
+import {
+  validateJson,
+  validateParams,
+} from "#/interfaces/http/validators/standard-validator";
 
-export const schedulesRouter = new Hono();
-const schedulesTags = ["Schedules"];
+export interface SchedulesRouterDeps {
+  jwtSecret: string;
+  repositories: {
+    scheduleRepository: ScheduleRepository;
+    playlistRepository: PlaylistRepository;
+    deviceRepository: DeviceRepository;
+    authorizationRepository: AuthorizationRepository;
+  };
+}
 
-schedulesRouter.get(
-  "/",
-  describeRoute({
-    description: "Schedules routes placeholder",
-    tags: schedulesTags,
-    responses: {
-      501: {
-        description: "Not implemented",
-        content: {
-          "application/json": {
-            schema: resolver(errorResponseSchema),
+export const createSchedulesRouter = (deps: SchedulesRouterDeps) => {
+  const router = new Hono<{ Variables: JwtUserVariables }>();
+  const scheduleTags = ["Schedules"];
+  const { authorize } = createPermissionMiddleware({
+    jwtSecret: deps.jwtSecret,
+    authorizationRepository: deps.repositories.authorizationRepository,
+  });
+
+  const listSchedules = new ListSchedulesUseCase({
+    scheduleRepository: deps.repositories.scheduleRepository,
+    playlistRepository: deps.repositories.playlistRepository,
+    deviceRepository: deps.repositories.deviceRepository,
+  });
+  const createSchedule = new CreateScheduleUseCase({
+    scheduleRepository: deps.repositories.scheduleRepository,
+    playlistRepository: deps.repositories.playlistRepository,
+    deviceRepository: deps.repositories.deviceRepository,
+  });
+  const getSchedule = new GetScheduleUseCase({
+    scheduleRepository: deps.repositories.scheduleRepository,
+    playlistRepository: deps.repositories.playlistRepository,
+    deviceRepository: deps.repositories.deviceRepository,
+  });
+  const updateSchedule = new UpdateScheduleUseCase({
+    scheduleRepository: deps.repositories.scheduleRepository,
+    playlistRepository: deps.repositories.playlistRepository,
+    deviceRepository: deps.repositories.deviceRepository,
+  });
+  const deleteSchedule = new DeleteScheduleUseCase({
+    scheduleRepository: deps.repositories.scheduleRepository,
+  });
+
+  router.get(
+    "/",
+    ...authorize("schedules:read"),
+    describeRoute({
+      description: "List schedules",
+      tags: scheduleTags,
+      responses: {
+        200: {
+          description: "Schedules list",
+          content: {
+            "application/json": {
+              schema: resolver(scheduleListResponseSchema),
+            },
           },
         },
       },
+    }),
+    async (c) => {
+      const items = await listSchedules.execute();
+      return c.json({ items });
     },
-  }),
-  (c) => notImplemented(c, "Schedules routes: to be implemented"),
-);
+  );
+
+  router.post(
+    "/",
+    ...authorize("schedules:create"),
+    validateJson(createScheduleSchema),
+    describeRoute({
+      description: "Create schedule",
+      tags: scheduleTags,
+      responses: {
+        201: {
+          description: "Schedule created",
+          content: {
+            "application/json": {
+              schema: resolver(scheduleSchema),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const payload = createScheduleSchema.parse(c.req.valid("json"));
+      try {
+        const result = await createSchedule.execute({
+          name: payload.name,
+          playlistId: payload.playlistId,
+          deviceId: payload.deviceId,
+          startTime: payload.startTime,
+          endTime: payload.endTime,
+          daysOfWeek: payload.daysOfWeek,
+          priority: payload.priority,
+          isActive: payload.isActive ?? true,
+        });
+        return c.json(result, 201);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return notFound(c, error.message);
+        }
+        if (error instanceof Error) {
+          return badRequest(c, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  router.get(
+    "/:id",
+    ...authorize("schedules:read"),
+    validateParams(scheduleIdParamSchema),
+    describeRoute({
+      description: "Get schedule",
+      tags: scheduleTags,
+      responses: {
+        200: {
+          description: "Schedule details",
+          content: {
+            "application/json": {
+              schema: resolver(scheduleSchema),
+            },
+          },
+        },
+        404: {
+          description: "Not found",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const params = c.req.valid("param");
+      try {
+        const result = await getSchedule.execute({ id: params.id });
+        return c.json(result);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return notFound(c, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  router.patch(
+    "/:id",
+    ...authorize("schedules:update"),
+    validateParams(scheduleIdParamSchema),
+    validateJson(updateScheduleSchema),
+    describeRoute({
+      description: "Update schedule",
+      tags: scheduleTags,
+      responses: {
+        200: {
+          description: "Schedule updated",
+          content: {
+            "application/json": {
+              schema: resolver(scheduleSchema),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const params = c.req.valid("param");
+      const payload = updateScheduleSchema.parse(c.req.valid("json"));
+      try {
+        const result = await updateSchedule.execute({
+          id: params.id,
+          name: payload.name,
+          playlistId: payload.playlistId,
+          deviceId: payload.deviceId,
+          startTime: payload.startTime,
+          endTime: payload.endTime,
+          daysOfWeek: payload.daysOfWeek,
+          priority: payload.priority,
+          isActive: payload.isActive,
+        });
+        return c.json(result);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return notFound(c, error.message);
+        }
+        if (error instanceof Error) {
+          return badRequest(c, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  router.delete(
+    "/:id",
+    ...authorize("schedules:delete"),
+    validateParams(scheduleIdParamSchema),
+    describeRoute({
+      description: "Delete schedule",
+      tags: scheduleTags,
+      responses: {
+        204: { description: "Deleted" },
+        404: {
+          description: "Not found",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const params = c.req.valid("param");
+      try {
+        await deleteSchedule.execute({ id: params.id });
+        return c.body(null, 204);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return notFound(c, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  return router;
+};

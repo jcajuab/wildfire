@@ -9,9 +9,12 @@ import { HtshadowCredentialsRepository } from "#/infrastructure/auth/htshadow.re
 import { JwtTokenIssuer } from "#/infrastructure/auth/jwt";
 import { AuthorizationDbRepository } from "#/infrastructure/db/repositories/authorization.repo";
 import { ContentDbRepository } from "#/infrastructure/db/repositories/content.repo";
+import { DeviceDbRepository } from "#/infrastructure/db/repositories/device.repo";
 import { PermissionDbRepository } from "#/infrastructure/db/repositories/permission.repo";
+import { PlaylistDbRepository } from "#/infrastructure/db/repositories/playlist.repo";
 import { RoleDbRepository } from "#/infrastructure/db/repositories/role.repo";
 import { RolePermissionDbRepository } from "#/infrastructure/db/repositories/role-permission.repo";
+import { ScheduleDbRepository } from "#/infrastructure/db/repositories/schedule.repo";
 import { UserDbRepository } from "#/infrastructure/db/repositories/user.repo";
 import { UserRoleDbRepository } from "#/infrastructure/db/repositories/user-role.repo";
 import { logger } from "#/infrastructure/observability/logger";
@@ -24,11 +27,11 @@ import {
 import { internalServerError } from "#/interfaces/http/responses";
 import { createAuthRouter } from "#/interfaces/http/routes/auth.route";
 import { createContentRouter } from "#/interfaces/http/routes/content.route";
-import { devicesRouter } from "#/interfaces/http/routes/devices.route";
+import { createDevicesRouter } from "#/interfaces/http/routes/devices.route";
 import { healthRouter } from "#/interfaces/http/routes/health.route";
-import { playlistsRouter } from "#/interfaces/http/routes/playlists.route";
+import { createPlaylistsRouter } from "#/interfaces/http/routes/playlists.route";
 import { createRbacRouter } from "#/interfaces/http/routes/rbac.route";
-import { schedulesRouter } from "#/interfaces/http/routes/schedules.route";
+import { createSchedulesRouter } from "#/interfaces/http/routes/schedules.route";
 import packageJSON from "#/package.json" with { type: "json" };
 
 export const app = new Hono<{ Variables: RequestIdVariables }>();
@@ -55,10 +58,27 @@ const authRouter = createAuthRouter({
 
 app.route("/", healthRouter);
 app.route("/auth", authRouter);
-app.route("/playlists", playlistsRouter);
-app.route("/schedules", schedulesRouter);
-app.route("/devices", devicesRouter);
+const playlistsRouter = createPlaylistsRouter({
+  jwtSecret: env.JWT_SECRET,
+  repositories: {
+    playlistRepository: new PlaylistDbRepository(),
+    contentRepository: new ContentDbRepository(),
+    userRepository: new UserDbRepository(),
+    authorizationRepository: new AuthorizationDbRepository(),
+  },
+});
 
+const schedulesRouter = createSchedulesRouter({
+  jwtSecret: env.JWT_SECRET,
+  repositories: {
+    scheduleRepository: new ScheduleDbRepository(),
+    playlistRepository: new PlaylistDbRepository(),
+    deviceRepository: new DeviceDbRepository(),
+    authorizationRepository: new AuthorizationDbRepository(),
+  },
+});
+
+app.route("/playlists", playlistsRouter);
 const contentStorage = new S3ContentStorage({
   bucket: env.MINIO_BUCKET,
   region: env.MINIO_REGION,
@@ -68,6 +88,23 @@ const contentStorage = new S3ContentStorage({
   accessKeyId: env.MINIO_ROOT_USER,
   secretAccessKey: env.MINIO_ROOT_PASSWORD,
 });
+
+app.route("/schedules", schedulesRouter);
+const devicesRouter = createDevicesRouter({
+  jwtSecret: env.JWT_SECRET,
+  deviceApiKey: env.DEVICE_API_KEY,
+  downloadUrlExpiresInSeconds: 60 * 60,
+  repositories: {
+    deviceRepository: new DeviceDbRepository(),
+    scheduleRepository: new ScheduleDbRepository(),
+    playlistRepository: new PlaylistDbRepository(),
+    contentRepository: new ContentDbRepository(),
+    authorizationRepository: new AuthorizationDbRepository(),
+  },
+  storage: contentStorage,
+});
+
+app.route("/devices", devicesRouter);
 
 const contentRouter = createContentRouter({
   jwtSecret: env.JWT_SECRET,
