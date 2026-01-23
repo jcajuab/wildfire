@@ -37,3 +37,29 @@ export const isWithinTimeWindow = (
 
   return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
 };
+
+export const selectActiveSchedule = <
+  T extends {
+    isActive: boolean;
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+    priority: number;
+  },
+>(
+  schedules: T[],
+  now: Date,
+) => {
+  const day = now.getDay();
+  const time = now.toISOString().slice(11, 16);
+
+  return (
+    schedules
+      .filter((schedule) => schedule.isActive)
+      .filter((schedule) => schedule.daysOfWeek.includes(day))
+      .filter((schedule) =>
+        isWithinTimeWindow(time, schedule.startTime, schedule.endTime),
+      )
+      .sort((a, b) => b.priority - a.priority)[0] ?? null
+  );
+};

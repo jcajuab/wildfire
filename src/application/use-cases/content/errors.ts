@@ -1,9 +1,4 @@
-export class NotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "NotFoundError";
-  }
-}
+export { NotFoundError } from "#/application/errors/not-found";
 
 export class InvalidContentTypeError extends Error {
   constructor(message: string) {

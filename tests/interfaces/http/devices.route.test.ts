@@ -197,6 +197,18 @@ describe("Devices routes", () => {
     expect(response.status).toBe(401);
   });
 
+  test("GET /devices/:id/manifest returns 401 without API key", async () => {
+    const { app } = await makeApp();
+    const response = await app.request(`/devices/${deviceId}/manifest`);
+    expect(response.status).toBe(401);
+  });
+
+  test("GET /devices/:id/active-schedule returns 401 without API key", async () => {
+    const { app } = await makeApp();
+    const response = await app.request(`/devices/${deviceId}/active-schedule`);
+    expect(response.status).toBe(401);
+  });
+
   test("GET /devices requires permission", async () => {
     const { app, issueToken } = await makeApp([]);
     const token = await issueToken();

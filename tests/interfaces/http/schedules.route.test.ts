@@ -152,4 +152,54 @@ describe("Schedules routes", () => {
     const json = await parseJson<{ id: string }>(response);
     expect(json.id).toBeDefined();
   });
+
+  test("POST /schedules returns 404 when playlist missing", async () => {
+    const { app, issueToken } = await makeApp(["schedules:create"]);
+    const token = await issueToken();
+
+    const response = await app.request("/schedules", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Morning",
+        playlistId: "0e2c9b1e-7c1a-4b4d-8c2e-7b0a2f5f6d8c",
+        deviceId,
+        startTime: "08:00",
+        endTime: "17:00",
+        daysOfWeek: [1, 2, 3],
+        priority: 10,
+        isActive: true,
+      }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  test("POST /schedules returns 400 for invalid time", async () => {
+    const { app, issueToken } = await makeApp(["schedules:create"]);
+    const token = await issueToken();
+
+    const response = await app.request("/schedules", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Morning",
+        playlistId,
+        deviceId,
+        startTime: "99:00",
+        endTime: "17:00",
+        daysOfWeek: [1, 2, 3],
+        priority: 10,
+        isActive: true,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+  });
 });

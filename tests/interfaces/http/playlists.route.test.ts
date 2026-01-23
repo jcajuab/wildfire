@@ -189,4 +189,43 @@ describe("Playlists routes", () => {
 
     expect(response.status).toBe(201);
   });
+
+  test("DELETE /playlists/:id returns 404 when missing", async () => {
+    const { app, issueToken } = await makeApp(["playlists:delete"]);
+    const token = await issueToken();
+
+    const response = await app.request(`/playlists/${playlistId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  test("PATCH /playlists/:id/items/:itemId returns 400 for invalid payload", async () => {
+    const { app, issueToken, playlists } = await makeApp(["playlists:update"]);
+    playlists.push({
+      id: playlistId,
+      name: "Morning",
+      description: null,
+      createdById: "user-1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    });
+
+    const token = await issueToken();
+    const response = await app.request(
+      `/playlists/${playlistId}/items/11111111-1111-1111-1111-111111111111`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sequence: 0 }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
 });

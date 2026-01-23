@@ -7,7 +7,7 @@ import { type PlaylistRepository } from "#/application/ports/playlists";
 import { type ScheduleRepository } from "#/application/ports/schedules";
 import { sha256Hex } from "#/domain/content/checksum";
 import { createDeviceProps, type DeviceInput } from "#/domain/devices/device";
-import { isWithinTimeWindow } from "#/domain/schedules/schedule";
+import { selectActiveSchedule } from "#/domain/schedules/schedule";
 import { NotFoundError } from "./errors";
 
 export class ListDevicesUseCase {
@@ -72,16 +72,7 @@ export class GetDeviceActiveScheduleUseCase {
     const schedules = await this.deps.scheduleRepository.listByDevice(
       input.deviceId,
     );
-    const time = input.now.toISOString().slice(11, 16);
-    const day = input.now.getDay();
-
-    const active = schedules
-      .filter((schedule) => schedule.isActive)
-      .filter((schedule) => schedule.daysOfWeek.includes(day))
-      .filter((schedule) =>
-        isWithinTimeWindow(time, schedule.startTime, schedule.endTime),
-      )
-      .sort((a, b) => b.priority - a.priority)[0];
+    const active = selectActiveSchedule(schedules, input.now);
 
     if (!active) return null;
 
@@ -127,16 +118,7 @@ export class GetDeviceManifestUseCase {
     const schedules = await this.deps.scheduleRepository.listByDevice(
       input.deviceId,
     );
-    const time = input.now.toISOString().slice(11, 16);
-    const day = input.now.getDay();
-
-    const active = schedules
-      .filter((schedule) => schedule.isActive)
-      .filter((schedule) => schedule.daysOfWeek.includes(day))
-      .filter((schedule) =>
-        isWithinTimeWindow(time, schedule.startTime, schedule.endTime),
-      )
-      .sort((a, b) => b.priority - a.priority)[0];
+    const active = selectActiveSchedule(schedules, input.now);
 
     if (!active) {
       return {

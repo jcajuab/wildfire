@@ -4,12 +4,10 @@ import { type ScheduleRepository } from "#/application/ports/schedules";
 import {
   isValidDaysOfWeek,
   isValidTime,
-  isWithinTimeWindow,
+  selectActiveSchedule,
 } from "#/domain/schedules/schedule";
 import { NotFoundError } from "./errors";
 import { toScheduleView } from "./schedule-view";
-
-const toTimeString = (date: Date) => date.toISOString().slice(11, 16);
 
 export class ListSchedulesUseCase {
   constructor(
@@ -197,17 +195,6 @@ export class GetActiveScheduleForDeviceUseCase {
     const schedules = await this.deps.scheduleRepository.listByDevice(
       input.deviceId,
     );
-    const day = input.now.getDay();
-    const time = toTimeString(input.now);
-
-    const active = schedules
-      .filter((schedule) => schedule.isActive)
-      .filter((schedule) => schedule.daysOfWeek.includes(day))
-      .filter((schedule) =>
-        isWithinTimeWindow(time, schedule.startTime, schedule.endTime),
-      )
-      .sort((a, b) => b.priority - a.priority);
-
-    return active[0] ?? null;
+    return selectActiveSchedule(schedules, input.now);
   }
 }
