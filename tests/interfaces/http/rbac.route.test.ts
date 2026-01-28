@@ -5,6 +5,8 @@ import { JwtTokenIssuer } from "#/infrastructure/auth/jwt";
 import { createRbacRouter } from "#/interfaces/http/routes/rbac.route";
 
 const tokenIssuer = new JwtTokenIssuer({ secret: "test-secret" });
+const roleId = "11111111-1111-4111-8111-111111111111";
+const userId = "22222222-2222-4222-8222-222222222222";
 const parseJson = async <T>(response: Response) => (await response.json()) as T;
 
 const makeStore = () => {
@@ -31,13 +33,13 @@ const makeStore = () => {
   };
 
   store.users.push({
-    id: "user-1",
+    id: userId,
     email: "admin@example.com",
     name: "Admin",
     isActive: true,
   });
   store.roles.push({
-    id: "role-1",
+    id: roleId,
     name: "Super Admin",
     description: "All access",
     isSystem: true,
@@ -48,8 +50,8 @@ const makeStore = () => {
     { id: "perm-3", resource: "roles", action: "create" },
     { id: "perm-4", resource: "users", action: "read" },
   );
-  store.userRoles.push({ userId: "user-1", roleId: "role-1" });
-  store.rolePermissions.push({ roleId: "role-1", permissionId: "perm-1" });
+  store.userRoles.push({ userId, roleId });
+  store.rolePermissions.push({ roleId, permissionId: "perm-1" });
 
   const repositories = {
     userRepository: {
@@ -196,7 +198,7 @@ const buildApp = (permissions: string[] = ["*:manage"]) => {
       };
     });
     store.rolePermissions = store.permissions.map((permission) => ({
-      roleId: "role-1",
+      roleId,
       permissionId: permission.id,
     }));
   }
@@ -212,7 +214,7 @@ const buildApp = (permissions: string[] = ["*:manage"]) => {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const issueToken = async () =>
     tokenIssuer.issueToken({
-      subject: "user-1",
+      subject: userId,
       issuedAt: nowSeconds,
       expiresAt: nowSeconds + 3600,
       issuer: undefined,
@@ -259,20 +261,31 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["roles:read"]);
     const token = await issueToken();
 
-    const response = await app.request("/roles/role-1", {
+    const response = await app.request(`/roles/${roleId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     expect(response.status).toBe(200);
     const body = await parseJson<{ id: string }>(response);
-    expect(body.id).toBe("role-1");
+    expect(body.id).toBe(roleId);
+  });
+
+  test("GET /roles/:id returns 400 for invalid id", async () => {
+    const { app, issueToken } = buildApp(["roles:read"]);
+    const token = await issueToken();
+
+    const response = await app.request("/roles/not-a-uuid", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(400);
   });
 
   test("PATCH /roles/:id updates role", async () => {
     const { app, issueToken } = buildApp(["roles:update"]);
     const token = await issueToken();
 
-    const response = await app.request("/roles/role-1", {
+    const response = await app.request(`/roles/${roleId}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -290,7 +303,7 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["roles:delete"]);
     const token = await issueToken();
 
-    const response = await app.request("/roles/role-1", {
+    const response = await app.request(`/roles/${roleId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -302,7 +315,7 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["roles:read"]);
     const token = await issueToken();
 
-    const response = await app.request("/roles/role-1/permissions", {
+    const response = await app.request(`/roles/${roleId}/permissions`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -315,7 +328,7 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["roles:update"]);
     const token = await issueToken();
 
-    const response = await app.request("/roles/role-1/permissions", {
+    const response = await app.request(`/roles/${roleId}/permissions`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -382,20 +395,20 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["users:read"]);
     const token = await issueToken();
 
-    const response = await app.request("/users/user-1", {
+    const response = await app.request(`/users/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     expect(response.status).toBe(200);
     const body = await parseJson<{ id: string }>(response);
-    expect(body.id).toBe("user-1");
+    expect(body.id).toBe(userId);
   });
 
   test("PATCH /users/:id updates user", async () => {
     const { app, issueToken } = buildApp(["users:update"]);
     const token = await issueToken();
 
-    const response = await app.request("/users/user-1", {
+    const response = await app.request(`/users/${userId}`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -413,7 +426,7 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["users:delete"]);
     const token = await issueToken();
 
-    const response = await app.request("/users/user-1", {
+    const response = await app.request(`/users/${userId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -425,19 +438,19 @@ describe("RBAC routes", () => {
     const { app, issueToken } = buildApp(["users:update"]);
     const token = await issueToken();
 
-    const response = await app.request("/users/user-1/roles", {
+    const response = await app.request(`/users/${userId}/roles`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ roleIds: ["role-1"] }),
+      body: JSON.stringify({ roleIds: [roleId] }),
     });
 
     expect(response.status).toBe(200);
     const body = await parseJson<Array<{ id: string }>>(response);
     expect(body.length).toBeGreaterThan(0);
-    expect(body[0]?.id).toBe("role-1");
+    expect(body[0]?.id).toBe(roleId);
   });
 
   test("GET /roles returns 401 without token", async () => {
