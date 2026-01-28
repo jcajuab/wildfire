@@ -31,12 +31,17 @@ import { errorResponseSchema, notFound } from "#/interfaces/http/responses";
 import {
   createRoleSchema,
   createUserSchema,
+  roleIdParamSchema,
   setRolePermissionsSchema,
   setUserRolesSchema,
   updateRoleSchema,
   updateUserSchema,
+  userIdParamSchema,
 } from "#/interfaces/http/validators/rbac.schema";
-import { validateJson } from "#/interfaces/http/validators/standard-validator";
+import {
+  validateJson,
+  validateParams,
+} from "#/interfaces/http/validators/standard-validator";
 
 export interface RbacRouterDeps {
   jwtSecret: string;
@@ -190,6 +195,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.get(
     "/roles/:id",
     ...authorize("roles:read"),
+    validateParams(roleIdParamSchema),
     describeRoute({
       description: "Get role",
       tags: roleTags,
@@ -206,8 +212,9 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       try {
-        const role = await getRole.execute({ id: c.req.param("id") });
+        const role = await getRole.execute({ id: params.id });
         return c.json(role);
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -221,6 +228,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.patch(
     "/roles/:id",
     ...authorize("roles:update"),
+    validateParams(roleIdParamSchema),
     validateJson(updateRoleSchema),
     describeRoute({
       description: "Update role",
@@ -246,10 +254,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       const payload = c.req.valid("json");
       try {
         const role = await updateRole.execute({
-          id: c.req.param("id"),
+          id: params.id,
           ...payload,
         });
         return c.json(role);
@@ -265,6 +274,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.delete(
     "/roles/:id",
     ...authorize("roles:delete"),
+    validateParams(roleIdParamSchema),
     describeRoute({
       description: "Delete role",
       tags: roleTags,
@@ -281,8 +291,9 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       try {
-        await deleteRole.execute({ id: c.req.param("id") });
+        await deleteRole.execute({ id: params.id });
         return c.body(null, 204);
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -296,6 +307,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.get(
     "/roles/:id/permissions",
     ...authorize("roles:read"),
+    validateParams(roleIdParamSchema),
     describeRoute({
       description: "Get role permissions",
       tags: roleTags,
@@ -312,9 +324,10 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       try {
         const permissions = await getRolePermissions.execute({
-          roleId: c.req.param("id"),
+          roleId: params.id,
         });
         return c.json(permissions);
       } catch (error) {
@@ -329,6 +342,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.put(
     "/roles/:id/permissions",
     ...authorize("roles:update"),
+    validateParams(roleIdParamSchema),
     validateJson(setRolePermissionsSchema),
     describeRoute({
       description: "Set role permissions",
@@ -354,10 +368,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       const payload = c.req.valid("json");
       try {
         const permissions = await setRolePermissions.execute({
-          roleId: c.req.param("id"),
+          roleId: params.id,
           permissionIds: payload.permissionIds,
         });
         return c.json(permissions);
@@ -431,6 +446,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.get(
     "/users/:id",
     ...authorize("users:read"),
+    validateParams(userIdParamSchema),
     describeRoute({
       description: "Get user",
       tags: userTags,
@@ -447,8 +463,9 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       try {
-        const user = await getUser.execute({ id: c.req.param("id") });
+        const user = await getUser.execute({ id: params.id });
         return c.json(user);
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -462,6 +479,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.patch(
     "/users/:id",
     ...authorize("users:update"),
+    validateParams(userIdParamSchema),
     validateJson(updateUserSchema),
     describeRoute({
       description: "Update user",
@@ -487,10 +505,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       const payload = c.req.valid("json");
       try {
         const user = await updateUser.execute({
-          id: c.req.param("id"),
+          id: params.id,
           ...payload,
         });
         return c.json(user);
@@ -506,6 +525,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.delete(
     "/users/:id",
     ...authorize("users:delete"),
+    validateParams(userIdParamSchema),
     describeRoute({
       description: "Delete user",
       tags: userTags,
@@ -522,8 +542,9 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       try {
-        await deleteUser.execute({ id: c.req.param("id") });
+        await deleteUser.execute({ id: params.id });
         return c.body(null, 204);
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -537,6 +558,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
   router.put(
     "/users/:id/roles",
     ...authorize("users:update"),
+    validateParams(userIdParamSchema),
     validateJson(setUserRolesSchema),
     describeRoute({
       description: "Assign roles to user",
@@ -562,10 +584,11 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       },
     }),
     async (c) => {
+      const params = c.req.valid("param");
       const payload = c.req.valid("json");
       try {
         const roles = await setUserRoles.execute({
-          userId: c.req.param("id"),
+          userId: params.id,
           roleIds: payload.roleIds,
         });
         return c.json(roles);

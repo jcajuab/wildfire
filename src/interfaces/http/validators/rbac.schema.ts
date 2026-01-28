@@ -5,6 +5,10 @@ export const createRoleSchema = z.object({
   description: z.string().trim().optional().nullable(),
 });
 
+export const roleIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export const updateRoleSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().trim().optional().nullable(),
@@ -18,6 +22,10 @@ export const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
   isActive: z.boolean().optional(),
+});
+
+export const userIdParamSchema = z.object({
+  id: z.string().uuid(),
 });
 
 export const updateUserSchema = z.object({
