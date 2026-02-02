@@ -35,6 +35,10 @@ export const env = createEnv({
     LOG_LEVEL: z.string().default("info"),
     LOG_PRETTY: z.coerce.boolean().default(true),
     DEVICE_API_KEY: z.string().min(1),
+    CORS_ORIGINS: z
+      .string()
+      .default("http://localhost:3000")
+      .transform((val) => val.split(",")),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

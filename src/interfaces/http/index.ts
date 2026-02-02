@@ -1,5 +1,6 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { type RequestIdVariables } from "hono/request-id";
 import { openAPIRouteHandler } from "hono-openapi";
@@ -36,6 +37,13 @@ import packageJSON from "#/package.json" with { type: "json" };
 
 export const app = new Hono<{ Variables: RequestIdVariables }>();
 
+app.use(
+  "*",
+  cors({
+    origin: env.CORS_ORIGINS,
+    credentials: true,
+  }),
+);
 app.use("*", requestId());
 app.use("*", requestLogger);
 
