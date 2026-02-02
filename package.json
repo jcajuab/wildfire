@@ -12,7 +12,8 @@
     "db:dump": "dotenvx run -- sh -c 'mysqldump --no-tablespaces -h \"$MYSQL_HOST\" -P \"$MYSQL_PORT\" -u \"$MYSQL_USER\" -p\"$MYSQL_PASSWORD\" \"$MYSQL_DATABASE\" > wildfire_db_dump_$(date +%Y%m%d_%H%M%S).sql'",
     "seed:permissions": "dotenvx run -- bun run src/infrastructure/db/seeds/seed-standard-permissions.ts",
     "seed:super-admin": "dotenvx run -- bun run src/infrastructure/db/seeds/seed-super-admin.ts",
-    "seed:assign-super-admin": "dotenvx run -- bun run src/infrastructure/db/seeds/assign-super-admin-to-user.ts"
+    "seed:assign-super-admin": "dotenvx run -- bun run src/infrastructure/db/seeds/assign-super-admin-to-user.ts",
+    "seed:dummy-users": "dotenvx run -- bun run src/infrastructure/db/seeds/seed-dummy-users-and-roles.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.975.0",

@@ -102,7 +102,7 @@ const makeStore = () => {
         isSystem?: boolean;
       }) => {
         const role = {
-          id: `role-${store.roles.length + 1}`,
+          id: crypto.randomUUID(),
           name: data.name,
           description: data.description ?? null,
           isSystem: data.isSystem ?? false,
@@ -305,11 +305,40 @@ describe("RBAC routes", () => {
     expect(body.description).toBe("Updated");
   });
 
-  test("DELETE /roles/:id removes role", async () => {
+  test("DELETE /roles/:id returns 403 for system role", async () => {
     const { app, issueToken } = buildApp(["roles:delete"]);
     const token = await issueToken();
 
     const response = await app.request(`/roles/${roleId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(403);
+    const body = await parseJson<{ error: { code: string; message: string } }>(
+      response,
+    );
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.error.message).toContain("system role");
+  });
+
+  test("DELETE /roles/:id removes non-system role", async () => {
+    const { app, issueToken } = buildApp(["roles:delete", "roles:create"]);
+    const token = await issueToken();
+
+    const createRes = await app.request("/roles", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: "Custom Role", description: "To delete" }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = await parseJson<{ id: string }>(createRes);
+    const customRoleId = created.id;
+
+    const response = await app.request(`/roles/${customRoleId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });

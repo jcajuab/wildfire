@@ -377,6 +377,12 @@ Assigns the "Super Admin" role (all permissions) to a user by email so they can 
 
 Run via: `bun run seed:assign-super-admin`. Requires the user to exist in the `users` table and the Super Admin role to exist (`seed:super-admin`).
 
+### Seed: Dummy users and roles (for testing UI)
+
+Seeds 15 dummy users into the DB and the htshadow file so the Users and Roles pages can be tested with real data. Also ensures standard permissions and Super Admin role exist, creates "Editor" and "Viewer" roles with appropriate permissions, and assigns roles: 1 Super Admin, 5 Editors, 9 Viewers. All seeded users share password: `password`. Set `HTSHADOW_PATH` in `.env` to the path of your htshadow file (e.g. absolute path to `wildfire/htshadow`).
+
+Run via: `bun run seed:dummy-users`. Typical order: `seed:permissions` → `seed:super-admin` (or let this script run them), then `seed:dummy-users`.
+
 ### Endpoints (JWT + permission required)
 
 All RBAC endpoints use `authorize("<permission>")`, which means:
@@ -409,6 +415,7 @@ All RBAC endpoints use `authorize("<permission>")`, which means:
 
 - DELETE `/roles/:id` requires `roles:delete`
   - Response 204
+  - Response 403 if the role is a system role (e.g. Super Admin); system roles cannot be deleted
 
 - GET `/roles/:id/permissions` requires `roles:read`
   - Response 200: `Permission[]`

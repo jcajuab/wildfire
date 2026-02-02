@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { describeRoute, resolver } from "hono-openapi";
+import { ForbiddenError } from "#/application/errors/forbidden";
 import {
   type AuthorizationRepository,
   type PermissionRepository,
@@ -29,7 +30,11 @@ import {
 } from "#/application/use-cases/rbac";
 import { type JwtUserVariables } from "#/interfaces/http/middleware/jwt-user";
 import { createPermissionMiddleware } from "#/interfaces/http/middleware/permissions";
-import { errorResponseSchema, notFound } from "#/interfaces/http/responses";
+import {
+  errorResponseSchema,
+  forbidden,
+  notFound,
+} from "#/interfaces/http/responses";
 import {
   createRoleSchema,
   createUserSchema,
@@ -292,6 +297,14 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       tags: roleTags,
       responses: {
         204: { description: "Deleted" },
+        403: {
+          description: "Forbidden (e.g. cannot delete system role)",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
         404: {
           description: "Not found",
           content: {
@@ -308,6 +321,9 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
         await deleteRole.execute({ id: params.id });
         return c.body(null, 204);
       } catch (error) {
+        if (error instanceof ForbiddenError) {
+          return forbidden(c, error.message);
+        }
         if (error instanceof NotFoundError) {
           return notFound(c, error.message);
         }

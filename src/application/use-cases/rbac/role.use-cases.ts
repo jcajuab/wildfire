@@ -1,3 +1,4 @@
+import { ForbiddenError } from "#/application/errors/forbidden";
 import {
   type PermissionRepository,
   type RolePermissionRepository,
@@ -57,6 +58,11 @@ export class DeleteRoleUseCase {
   constructor(private readonly deps: { roleRepository: RoleRepository }) {}
 
   async execute(input: { id: string }) {
+    const role = await this.deps.roleRepository.findById(input.id);
+    if (!role) throw new NotFoundError("Role not found");
+    if (role.isSystem) {
+      throw new ForbiddenError("Cannot delete system role");
+    }
     const deleted = await this.deps.roleRepository.delete(input.id);
     if (!deleted) throw new NotFoundError("Role not found");
   }

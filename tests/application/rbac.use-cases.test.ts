@@ -175,7 +175,10 @@ describe("RBAC use cases", () => {
 
   test("DeleteRoleUseCase throws when role missing", async () => {
     const useCase = new DeleteRoleUseCase({
-      roleRepository: { delete: async () => false } as never,
+      roleRepository: {
+        findById: async () => null,
+        delete: async () => false,
+      } as never,
     });
 
     await expect(useCase.execute({ id: "role-1" })).rejects.toBeInstanceOf(
