@@ -121,7 +121,7 @@ describe("AuthenticateUserUseCase", () => {
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
   });
 
-  test("throws InvalidCredentialsError when user is inactive", async () => {
+  test("throws InvalidCredentialsError with deactivated message when user is inactive", async () => {
     const { deps } = makeDeps();
     const useCase = new AuthenticateUserUseCase({
       ...deps,
@@ -136,8 +136,15 @@ describe("AuthenticateUserUseCase", () => {
       },
     });
 
-    await expect(
-      useCase.execute({ email: "test2@example.com", password: "pw" }),
-    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+    const err = await useCase
+      .execute({ email: "test2@example.com", password: "pw" })
+      .then(
+        () => null as unknown as InvalidCredentialsError,
+        (e: unknown) => e as InvalidCredentialsError,
+      );
+    expect(err).toBeInstanceOf(InvalidCredentialsError);
+    expect(err?.message).toBe(
+      "Your account is currently deactivated. Please contact your administrator.",
+    );
   });
 });

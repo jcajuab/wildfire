@@ -26,8 +26,13 @@ export class RefreshSessionUseCase {
 
   async execute(input: RefreshSessionInput): Promise<RefreshSessionResult> {
     const user = await this.deps.userRepository.findById(input.userId);
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new InvalidCredentialsError();
+    }
+    if (!user.isActive) {
+      throw new InvalidCredentialsError(
+        "Your account is currently deactivated. Please contact your administrator.",
+      );
     }
 
     const issuedAt = this.deps.clock.nowSeconds();

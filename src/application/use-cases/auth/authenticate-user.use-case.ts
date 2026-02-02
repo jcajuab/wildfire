@@ -51,8 +51,13 @@ export class AuthenticateUserUseCase {
     }
 
     const user = await this.deps.userRepository.findByEmail(input.email);
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new InvalidCredentialsError();
+    }
+    if (!user.isActive) {
+      throw new InvalidCredentialsError(
+        "Your account is currently deactivated. Please contact your administrator.",
+      );
     }
 
     const issuedAt = this.deps.clock.nowSeconds();

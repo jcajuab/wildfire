@@ -15,8 +15,12 @@ const fixturePath = path.join(
 const tokenTtlSeconds = 60 * 60;
 const parseJson = async <T>(response: Response) => (await response.json()) as T;
 
-const buildApp = () => {
+const DEACTIVATED_MESSAGE =
+  "Your account is currently deactivated. Please contact your administrator.";
+
+const buildApp = (opts?: { inactiveUserEmail?: string }) => {
   const nowSeconds = Math.floor(Date.now() / 1000);
+  const inactiveUserEmail = opts?.inactiveUserEmail;
   const credentialsRepository = new HtshadowCredentialsRepository({
     filePath: fixturePath,
   });
@@ -31,7 +35,7 @@ const buildApp = () => {
             id: "user-1",
             email,
             name: "Test One",
-            isActive: true,
+            isActive: email !== inactiveUserEmail,
           }
         : null,
     findById: async (id: string) =>
@@ -40,7 +44,7 @@ const buildApp = () => {
             id: "user-1",
             email: "test1@example.com",
             name: "Test One",
-            isActive: true,
+            isActive: inactiveUserEmail !== "test1@example.com",
           }
         : null,
     findByIds: async () => [],
@@ -121,6 +125,31 @@ describe("Auth routes", () => {
       error: {
         code: "UNAUTHORIZED",
         message: "Invalid credentials",
+      },
+    });
+  });
+
+  test("POST /auth/login returns 401 with deactivated message when user is inactive", async () => {
+    const { app } = buildApp({ inactiveUserEmail: "test1@example.com" });
+
+    const response = await app.request("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "test1@example.com",
+        password: "xc4uuicX",
+      }),
+    });
+
+    expect(response.status).toBe(401);
+    const body = await parseJson<{ error: { code: string; message: string } }>(
+      response,
+    );
+
+    expect(body).toEqual({
+      error: {
+        code: "UNAUTHORIZED",
+        message: DEACTIVATED_MESSAGE,
       },
     });
   });
