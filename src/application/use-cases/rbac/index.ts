@@ -10,6 +10,7 @@ export {
   SetRolePermissionsUseCase,
   UpdateRoleUseCase,
 } from "#/application/use-cases/rbac/role.use-cases";
+export { SeedStandardPermissionsUseCase } from "#/application/use-cases/rbac/seed-standard-permissions.use-case";
 export { SeedSuperAdminRoleUseCase } from "#/application/use-cases/rbac/seed-super-admin.use-case";
 export {
   CreateUserUseCase,

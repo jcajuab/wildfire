@@ -365,6 +365,12 @@ A built-in seed exists (`src/application/use-cases/rbac/seed-super-admin.use-cas
 
 Run via: `bun run seed:super-admin` (script wiring is in repo tooling; this doc only specifies the behavior).
 
+### Seed: Standard Permissions
+
+A separate seed populates the `permissions` table with all standard `resource:action` pairs used by the app (content, playlists, schedules, devices, roles, users). Idempotent: skips any permission that already exists.
+
+Run via: `bun run seed:permissions`. Typical order: run `seed:permissions` first so `GET /permissions` returns the full list, then `seed:super-admin` to create the Super Admin role and assign `*:manage`.
+
 ### Endpoints (JWT + permission required)
 
 All RBAC endpoints use `authorize("<permission>")`, which means:
