@@ -2,6 +2,8 @@ import {
   type PermissionRepository,
   type RolePermissionRepository,
   type RoleRepository,
+  type UserRepository,
+  type UserRoleRepository,
 } from "#/application/ports/rbac";
 import { NotFoundError } from "#/application/use-cases/rbac/errors";
 
@@ -101,5 +103,27 @@ export class SetRolePermissionsUseCase {
     );
 
     return this.deps.permissionRepository.findByIds(input.permissionIds);
+  }
+}
+
+export class GetRoleUsersUseCase {
+  constructor(
+    private readonly deps: {
+      roleRepository: RoleRepository;
+      userRoleRepository: UserRoleRepository;
+      userRepository: UserRepository;
+    },
+  ) {}
+
+  async execute(input: { roleId: string }) {
+    const role = await this.deps.roleRepository.findById(input.roleId);
+    if (!role) throw new NotFoundError("Role not found");
+
+    const userIds = await this.deps.userRoleRepository.listUserIdsByRoleId(
+      input.roleId,
+    );
+    if (userIds.length === 0) return [];
+
+    return this.deps.userRepository.findByIds(userIds);
   }
 }

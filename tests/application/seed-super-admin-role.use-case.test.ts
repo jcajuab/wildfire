@@ -24,6 +24,8 @@ const makeStore = () => {
         list: async () => [...store.roles],
         findById: async (id: string) =>
           store.roles.find((role) => role.id === id) ?? null,
+        findByIds: async (ids: string[]) =>
+          store.roles.filter((role) => ids.includes(role.id)),
         create: async (input: {
           name: string;
           description?: string | null;

@@ -371,6 +371,12 @@ A separate seed populates the `permissions` table with all standard `resource:ac
 
 Run via: `bun run seed:permissions`. Typical order: run `seed:permissions` first so `GET /permissions` returns the full list, then `seed:super-admin` to create the Super Admin role and assign `*:manage`.
 
+### Seed: Assign Super Admin to user by email
+
+Assigns the "Super Admin" role (all permissions) to a user by email so they can call RBAC endpoints. Default email: `test@example.com`. Optional env: `SEED_USER_EMAIL`.
+
+Run via: `bun run seed:assign-super-admin`. Requires the user to exist in the `users` table and the Super Admin role to exist (`seed:super-admin`).
+
 ### Endpoints (JWT + permission required)
 
 All RBAC endpoints use `authorize("<permission>")`, which means:
@@ -414,6 +420,10 @@ All RBAC endpoints use `authorize("<permission>")`, which means:
     ```
   - Response 200: `Permission[]` (resolved records for provided ids)
 
+- GET `/roles/:id/users` requires `roles:read`
+  - Response 200: `User[]` (users assigned to this role)
+  - 404 if role missing
+
 #### Permissions
 
 - GET `/permissions` requires `roles:read`
@@ -433,6 +443,10 @@ All RBAC endpoints use `authorize("<permission>")`, which means:
 
 - GET `/users/:id` requires `users:read`
   - Response 200: `User`
+
+- GET `/users/:id/roles` requires `users:read`
+  - Response 200: `Role[]` (roles assigned to this user)
+  - 404 if user missing
 
 - PATCH `/users/:id` requires `users:update`
   - Body:

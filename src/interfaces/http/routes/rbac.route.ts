@@ -15,6 +15,8 @@ import {
   DeleteUserUseCase,
   GetRolePermissionsUseCase,
   GetRoleUseCase,
+  GetRoleUsersUseCase,
+  GetUserRolesUseCase,
   GetUserUseCase,
   ListPermissionsUseCase,
   ListRolesUseCase,
@@ -114,6 +116,16 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
     userRepository: deps.repositories.userRepository,
     roleRepository: deps.repositories.roleRepository,
     userRoleRepository: deps.repositories.userRoleRepository,
+  });
+  const getUserRoles = new GetUserRolesUseCase({
+    userRepository: deps.repositories.userRepository,
+    userRoleRepository: deps.repositories.userRoleRepository,
+    roleRepository: deps.repositories.roleRepository,
+  });
+  const getRoleUsers = new GetRoleUsersUseCase({
+    roleRepository: deps.repositories.roleRepository,
+    userRoleRepository: deps.repositories.userRoleRepository,
+    userRepository: deps.repositories.userRepository,
   });
 
   router.get(
@@ -339,6 +351,39 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
     },
   );
 
+  router.get(
+    "/roles/:id/users",
+    ...authorize("roles:read"),
+    validateParams(roleIdParamSchema),
+    describeRoute({
+      description: "Get users assigned to role",
+      tags: roleTags,
+      responses: {
+        200: { description: "Users" },
+        404: {
+          description: "Not found",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const params = c.req.valid("param");
+      try {
+        const users = await getRoleUsers.execute({ roleId: params.id });
+        return c.json(users);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return notFound(c, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
   router.put(
     "/roles/:id/permissions",
     ...authorize("roles:update"),
@@ -467,6 +512,39 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
       try {
         const user = await getUser.execute({ id: params.id });
         return c.json(user);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return notFound(c, error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  router.get(
+    "/users/:id/roles",
+    ...authorize("users:read"),
+    validateParams(userIdParamSchema),
+    describeRoute({
+      description: "Get roles assigned to user",
+      tags: userTags,
+      responses: {
+        200: { description: "Roles" },
+        404: {
+          description: "Not found",
+          content: {
+            "application/json": {
+              schema: resolver(errorResponseSchema),
+            },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const params = c.req.valid("param");
+      try {
+        const roles = await getUserRoles.execute({ userId: params.id });
+        return c.json(roles);
       } catch (error) {
         if (error instanceof NotFoundError) {
           return notFound(c, error.message);

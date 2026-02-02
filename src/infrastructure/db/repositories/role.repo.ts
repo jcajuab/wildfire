@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { type RoleRecord, type RoleRepository } from "#/application/ports/rbac";
 import { db } from "#/infrastructure/db/client";
 import { roles } from "#/infrastructure/db/schema/rbac.sql";
@@ -15,6 +15,11 @@ export class RoleDbRepository implements RoleRepository {
       .where(eq(roles.id, id))
       .limit(1);
     return result[0] ?? null;
+  }
+
+  async findByIds(ids: string[]): Promise<RoleRecord[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(roles).where(inArray(roles.id, ids));
   }
 
   async create(input: {

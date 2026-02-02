@@ -94,6 +94,8 @@ const makeStore = () => {
       list: async () => [...store.roles],
       findById: async (id: string) =>
         store.roles.find((role) => role.id === id) ?? null,
+      findByIds: async (ids: string[]) =>
+        store.roles.filter((role) => ids.includes(role.id)),
       create: async (data: {
         name: string;
         description?: string | null;
@@ -143,6 +145,10 @@ const makeStore = () => {
     userRoleRepository: {
       listRolesByUserId: async (userId: string) =>
         store.userRoles.filter((item) => item.userId === userId),
+      listUserIdsByRoleId: async (roleId: string) =>
+        store.userRoles
+          .filter((item) => item.roleId === roleId)
+          .map((item) => item.userId),
       setUserRoles: async (userId: string, roleIds: string[]) => {
         store.userRoles = store.userRoles.filter(
           (item) => item.userId !== userId,
@@ -343,6 +349,20 @@ describe("RBAC routes", () => {
     expect(body[0]?.id).toBe("perm-1");
   });
 
+  test("GET /roles/:id/users returns users assigned to role", async () => {
+    const { app, issueToken } = buildApp(["roles:read"]);
+    const token = await issueToken();
+
+    const response = await app.request(`/roles/${roleId}/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(200);
+    const body = await parseJson<Array<{ id: string }>>(response);
+    expect(body.length).toBeGreaterThan(0);
+    expect(body[0]?.id).toBe(userId);
+  });
+
   test("GET /permissions returns permissions", async () => {
     const { app, issueToken } = buildApp(["roles:read"]);
     const token = await issueToken();
@@ -402,6 +422,20 @@ describe("RBAC routes", () => {
     expect(response.status).toBe(200);
     const body = await parseJson<{ id: string }>(response);
     expect(body.id).toBe(userId);
+  });
+
+  test("GET /users/:id/roles returns roles assigned to user", async () => {
+    const { app, issueToken } = buildApp(["users:read"]);
+    const token = await issueToken();
+
+    const response = await app.request(`/users/${userId}/roles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(200);
+    const body = await parseJson<Array<{ id: string }>>(response);
+    expect(body.length).toBeGreaterThan(0);
+    expect(body[0]?.id).toBe(roleId);
   });
 
   test("PATCH /users/:id updates user", async () => {

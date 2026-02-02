@@ -10,6 +10,14 @@ export class UserRoleDbRepository implements UserRoleRepository {
     return db.select().from(userRoles).where(eq(userRoles.userId, userId));
   }
 
+  async listUserIdsByRoleId(roleId: string): Promise<string[]> {
+    const rows = await db
+      .select({ userId: userRoles.userId })
+      .from(userRoles)
+      .where(eq(userRoles.roleId, roleId));
+    return rows.map((row) => row.userId);
+  }
+
   async setUserRoles(userId: string, roleIds: string[]): Promise<void> {
     await db.delete(userRoles).where(eq(userRoles.userId, userId));
     if (roleIds.length === 0) return;

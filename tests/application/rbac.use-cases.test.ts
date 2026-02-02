@@ -6,6 +6,8 @@ import {
   DeleteUserUseCase,
   GetRolePermissionsUseCase,
   GetRoleUseCase,
+  GetRoleUsersUseCase,
+  GetUserRolesUseCase,
   GetUserUseCase,
   ListPermissionsUseCase,
   ListRolesUseCase,
@@ -231,5 +233,91 @@ describe("RBAC use cases", () => {
     await expect(useCase.execute()).resolves.toEqual([
       { id: "perm-1", resource: "content", action: "read" },
     ]);
+  });
+
+  test("GetUserRolesUseCase returns roles for user", async () => {
+    const useCase = new GetUserRolesUseCase({
+      userRepository: {
+        findById: async (id: string) =>
+          id === "user-1"
+            ? { id: "user-1", email: "u@e.com", name: "U", isActive: true }
+            : null,
+      } as never,
+      userRoleRepository: {
+        listRolesByUserId: async () => [
+          { userId: "user-1", roleId: "role-1" },
+          { userId: "user-1", roleId: "role-2" },
+        ],
+      } as never,
+      roleRepository: {
+        findByIds: async (ids: string[]) =>
+          ids.map((id) => ({
+            id,
+            name: id === "role-1" ? "Admin" : "Viewer",
+            description: null,
+            isSystem: false,
+          })),
+      } as never,
+    });
+
+    const result = await useCase.execute({ userId: "user-1" });
+    expect(result).toHaveLength(2);
+    expect(result.map((r) => r.name)).toEqual(["Admin", "Viewer"]);
+  });
+
+  test("GetUserRolesUseCase throws when user missing", async () => {
+    const useCase = new GetUserRolesUseCase({
+      userRepository: { findById: async () => null } as never,
+      userRoleRepository: { listRolesByUserId: async () => [] } as never,
+      roleRepository: { findByIds: async () => [] } as never,
+    });
+
+    await expect(useCase.execute({ userId: "missing" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  test("GetRoleUsersUseCase returns users for role", async () => {
+    const useCase = new GetRoleUsersUseCase({
+      roleRepository: {
+        findById: async (id: string) =>
+          id === "role-1"
+            ? {
+                id: "role-1",
+                name: "Admin",
+                description: null,
+                isSystem: false,
+              }
+            : null,
+      } as never,
+      userRoleRepository: {
+        listUserIdsByRoleId: async () => ["user-1", "user-2"],
+      } as never,
+      userRepository: {
+        findByIds: async (ids: string[]) =>
+          ids.map((id) => ({
+            id,
+            email: `${id}@e.com`,
+            name: id,
+            isActive: true,
+          })),
+      } as never,
+    });
+
+    const result = await useCase.execute({ roleId: "role-1" });
+    expect(result).toHaveLength(2);
+    expect(result.map((u) => u.id)).toEqual(["user-1", "user-2"]);
+  });
+
+  test("GetRoleUsersUseCase throws when role missing", async () => {
+    const useCase = new GetRoleUsersUseCase({
+      roleRepository: { findById: async () => null } as never,
+      userRoleRepository: { listUserIdsByRoleId: async () => [] } as never,
+      userRepository: { findByIds: async () => [] } as never,
+    });
+
+    await expect(useCase.execute({ roleId: "missing" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });

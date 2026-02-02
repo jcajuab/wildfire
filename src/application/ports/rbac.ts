@@ -40,6 +40,7 @@ export interface UserRepository {
 export interface RoleRepository {
   list(): Promise<RoleRecord[]>;
   findById(id: string): Promise<RoleRecord | null>;
+  findByIds(ids: string[]): Promise<RoleRecord[]>;
   create(input: {
     name: string;
     description?: string | null;
@@ -65,6 +66,7 @@ export interface UserRoleRepository {
   listRolesByUserId(
     userId: string,
   ): Promise<{ userId: string; roleId: string }[]>;
+  listUserIdsByRoleId(roleId: string): Promise<string[]>;
   setUserRoles(userId: string, roleIds: string[]): Promise<void>;
 }
 

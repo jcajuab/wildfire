@@ -5,6 +5,29 @@ import {
 } from "#/application/ports/rbac";
 import { NotFoundError } from "#/application/use-cases/rbac/errors";
 
+export class GetUserRolesUseCase {
+  constructor(
+    private readonly deps: {
+      userRepository: UserRepository;
+      userRoleRepository: UserRoleRepository;
+      roleRepository: RoleRepository;
+    },
+  ) {}
+
+  async execute(input: { userId: string }) {
+    const user = await this.deps.userRepository.findById(input.userId);
+    if (!user) throw new NotFoundError("User not found");
+
+    const assignments = await this.deps.userRoleRepository.listRolesByUserId(
+      input.userId,
+    );
+    const roleIds = assignments.map((a) => a.roleId);
+    if (roleIds.length === 0) return [];
+
+    return this.deps.roleRepository.findByIds(roleIds);
+  }
+}
+
 export class ListUsersUseCase {
   constructor(private readonly deps: { userRepository: UserRepository }) {}
 

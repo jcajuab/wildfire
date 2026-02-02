@@ -6,6 +6,7 @@ export {
   DeleteRoleUseCase,
   GetRolePermissionsUseCase,
   GetRoleUseCase,
+  GetRoleUsersUseCase,
   ListRolesUseCase,
   SetRolePermissionsUseCase,
   UpdateRoleUseCase,
@@ -15,6 +16,7 @@ export { SeedSuperAdminRoleUseCase } from "#/application/use-cases/rbac/seed-sup
 export {
   CreateUserUseCase,
   DeleteUserUseCase,
+  GetUserRolesUseCase,
   GetUserUseCase,
   ListUsersUseCase,
   SetUserRolesUseCase,
