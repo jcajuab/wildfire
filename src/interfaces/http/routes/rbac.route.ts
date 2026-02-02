@@ -74,6 +74,7 @@ export const createRbacRouter = (deps: RbacRouterDeps) => {
 
   const listRoles = new ListRolesUseCase({
     roleRepository: deps.repositories.roleRepository,
+    userRoleRepository: deps.repositories.userRoleRepository,
   });
   const createRole = new CreateRoleUseCase({
     roleRepository: deps.repositories.roleRepository,

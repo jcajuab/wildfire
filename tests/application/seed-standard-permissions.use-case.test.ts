@@ -4,6 +4,7 @@ import { SeedStandardPermissionsUseCase } from "#/application/use-cases/rbac";
 const STANDARD_RESOURCE_ACTIONS = [
   { resource: "content", action: "read" },
   { resource: "content", action: "create" },
+  { resource: "content", action: "update" },
   { resource: "content", action: "delete" },
   { resource: "playlists", action: "read" },
   { resource: "playlists", action: "create" },
@@ -14,14 +15,17 @@ const STANDARD_RESOURCE_ACTIONS = [
   { resource: "schedules", action: "update" },
   { resource: "schedules", action: "delete" },
   { resource: "devices", action: "read" },
-  { resource: "roles", action: "read" },
-  { resource: "roles", action: "create" },
-  { resource: "roles", action: "update" },
-  { resource: "roles", action: "delete" },
+  { resource: "devices", action: "create" },
+  { resource: "devices", action: "update" },
+  { resource: "devices", action: "delete" },
   { resource: "users", action: "read" },
   { resource: "users", action: "create" },
   { resource: "users", action: "update" },
   { resource: "users", action: "delete" },
+  { resource: "roles", action: "read" },
+  { resource: "roles", action: "create" },
+  { resource: "roles", action: "update" },
+  { resource: "roles", action: "delete" },
 ];
 
 const makeStore = () => {

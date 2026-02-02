@@ -14,6 +14,10 @@ export interface RoleRecord {
   isSystem: boolean;
 }
 
+export interface RoleWithUserCount extends RoleRecord {
+  usersCount: number;
+}
+
 export interface PermissionRecord {
   id: string;
   resource: string;
@@ -67,6 +71,8 @@ export interface UserRoleRepository {
     userId: string,
   ): Promise<{ userId: string; roleId: string }[]>;
   listUserIdsByRoleId(roleId: string): Promise<string[]>;
+  /** Returns count of users per role for the given role ids. */
+  listUserCountByRoleIds(roleIds: string[]): Promise<Record<string, number>>;
   setUserRoles(userId: string, roleIds: string[]): Promise<void>;
 }
 

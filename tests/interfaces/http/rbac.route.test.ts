@@ -149,6 +149,15 @@ const makeStore = () => {
         store.userRoles
           .filter((item) => item.roleId === roleId)
           .map((item) => item.userId),
+      listUserCountByRoleIds: async (roleIds: string[]) => {
+        const out: Record<string, number> = {};
+        for (const rid of roleIds) {
+          out[rid] = store.userRoles.filter(
+            (item) => item.roleId === rid,
+          ).length;
+        }
+        return out;
+      },
       setUserRoles: async (userId: string, roleIds: string[]) => {
         store.userRoles = store.userRoles.filter(
           (item) => item.userId !== userId,

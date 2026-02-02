@@ -111,7 +111,7 @@ describe("RBAC use cases", () => {
     ]);
   });
 
-  test("ListRolesUseCase returns roles", async () => {
+  test("ListRolesUseCase returns roles with user count", async () => {
     const useCase = new ListRolesUseCase({
       roleRepository: {
         list: async () => [
@@ -123,10 +123,25 @@ describe("RBAC use cases", () => {
           },
         ],
       } as never,
+      userRoleRepository: {
+        listUserCountByRoleIds: async (roleIds: string[]) => {
+          const out: Record<string, number> = {};
+          for (const id of roleIds) {
+            out[id] = id === "role-1" ? 2 : 0;
+          }
+          return out;
+        },
+      } as never,
     });
 
     await expect(useCase.execute()).resolves.toEqual([
-      { id: "role-1", name: "Admin", description: null, isSystem: false },
+      {
+        id: "role-1",
+        name: "Admin",
+        description: null,
+        isSystem: false,
+        usersCount: 2,
+      },
     ]);
   });
 

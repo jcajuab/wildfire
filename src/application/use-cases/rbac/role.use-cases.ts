@@ -3,16 +3,29 @@ import {
   type PermissionRepository,
   type RolePermissionRepository,
   type RoleRepository,
+  type RoleWithUserCount,
   type UserRepository,
   type UserRoleRepository,
 } from "#/application/ports/rbac";
 import { NotFoundError } from "#/application/use-cases/rbac/errors";
 
 export class ListRolesUseCase {
-  constructor(private readonly deps: { roleRepository: RoleRepository }) {}
+  constructor(
+    private readonly deps: {
+      roleRepository: RoleRepository;
+      userRoleRepository: UserRoleRepository;
+    },
+  ) {}
 
-  execute() {
-    return this.deps.roleRepository.list();
+  async execute(): Promise<RoleWithUserCount[]> {
+    const roles = await this.deps.roleRepository.list();
+    const roleIds = roles.map((r) => r.id);
+    const counts =
+      await this.deps.userRoleRepository.listUserCountByRoleIds(roleIds);
+    return roles.map((r) => ({
+      ...r,
+      usersCount: counts[r.id] ?? 0,
+    }));
   }
 }
 
